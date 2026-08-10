@@ -21,7 +21,8 @@ class UpdateMenuItemRequest extends FormRequest
             'is_new' => ['nullable', 'boolean'],
             'is_vdt' => ['nullable', 'boolean'],
             'is_available' => ['nullable', 'boolean'],
-            'image' => ['nullable', 'image', 'max:2048'],
+            // See StoreMenuItemRequest — same reasoning.
+            'image' => ['nullable', 'image', 'max:10240'],
             'remove_image' => ['nullable', 'boolean'],
         ];
     }

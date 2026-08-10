@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Storage;
 
 class MenuItem extends Model
 {
@@ -42,15 +41,22 @@ class MenuItem extends Model
 
     /**
      * Public URL for the item's photo, or null when none has been
-     * uploaded yet (true for every item today — the admin upload form
-     * that sets `image_path` lands in Phase 4). Views should treat null
-     * as "no photo" and fall back to the typography-only card, not show
-     * a broken image.
+     * uploaded yet. Views should treat null as "no photo" and fall back
+     * to the typography-only card, not show a broken image.
+     *
+     * Deliberately root-relative ("/storage/...") instead of
+     * Storage::disk('public')->url(), which builds an absolute URL from
+     * APP_URL. APP_URL ships as "http://localhost" with no port, while
+     * `php artisan serve` defaults to port 8000 — so every photo silently
+     * failed to load in the browser (wrong port) even though the upload
+     * and resize both succeeded. A root-relative path always resolves
+     * against whatever host/port/protocol the page was actually loaded
+     * from, so this can't drift out of sync with APP_URL again.
      */
     protected function imageUrl(): Attribute
     {
         return Attribute::get(
-            fn () => $this->image_path ? Storage::disk('public')->url($this->image_path) : null
+            fn () => $this->image_path ? '/storage/'.$this->image_path : null
         );
     }
 

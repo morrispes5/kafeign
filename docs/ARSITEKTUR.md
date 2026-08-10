@@ -124,12 +124,39 @@ ditanam di QR code tiap meja. Itu keputusan produk (mengubah isi QR yang
 dicetak, dan dropdown "pilih meja manual" perlu diganti/diberi PIN),
 bukan sesuatu yang boleh diselipkan diam-diam. Lihat [ROADMAP.md](ROADMAP.md).
 
+## Foto Menu (`app/Support/MenuItemImage.php`)
+
+Foto yang di-upload admin **tidak** disimpan apa adanya. `MenuItemImage::store()`
+membaca file lewat GD, mengecilkan sisi terpanjangnya ke maksimal 1000px
+(tidak pernah memperbesar foto yang sudah kecil), lalu menyimpannya
+sebagai JPEG kualitas 82 — apa pun format aslinya (PNG/WebP/GIF/BMP).
+
+Alasannya: foto kamera HP biasa 3000×4000px dan beberapa MB — jauh lebih
+besar dari yang pernah ditampilkan di kartu menu manapun. Tanpa ini,
+setiap pelanggan yang buka menu lewat wifi kafe menunggu unduhan berat
+untuk gambar yang toh ditampilkan kecil.
+
+**Dua bug yang pernah terjadi di area ini, sudah diperbaiki:**
+1. `upload_max_filesize` PHP sempat 2M — lebih kecil dari foto HP biasa,
+   jadi upload ditolak duluan sebelum sempat divalidasi Laravel. Sudah
+   dinaikkan (`php.ini`: `upload_max_filesize=12M`, `post_max_size=16M`),
+   dan validasi `image` di form request ikut dinaikkan ke `max:10240` (KB).
+2. `MenuItem::image_url` sebelumnya pakai `Storage::disk('public')->url()`,
+   yang membangun URL dari `APP_URL` di `.env` — dan `APP_URL` default-nya
+   `http://localhost` **tanpa port**, sementara `php artisan serve`
+   jalan di port 8000. Hasilnya: foto ter-upload dan ter-resize dengan
+   benar di server, tapi **gagal dimuat di browser** karena URL-nya
+   menunjuk ke port yang salah. Diperbaiki dengan URL root-relative
+   (`/storage/...`, tanpa host/port sama sekali) yang otomatis mengikuti
+   origin halaman yang sedang dibuka — tidak bisa lagi berbeda dari
+   `APP_URL`.
+
 ## Model Eloquent (`app/Models/`)
 
 | Model | Hal penting |
 |---|---|
 | `Category` | `ICONS` constant (daftar ikon valid), scope `orderedBySort()` |
-| `MenuItem` | scope `available()`, accessor `image_url` (null kalau belum ada foto) |
+| `MenuItem` | scope `available()`, accessor `image_url` (null kalau belum ada foto, root-relative `/storage/...` — lihat catatan gambar di bawah) |
 | `Table` | `getRouteKeyName()` = `number` (jadi URL pakai nomor meja, bukan id), method `activeOrder()` |
 | `Order` | enum-cast `status`, accessor `total` (dihitung, bukan disimpan), `findOrCreateOngoingForTable()`, `addItem()` (merge-by-quantity) |
 | `OrderItem` | auto-hitung `subtotal` lewat model event |

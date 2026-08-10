@@ -21,7 +21,12 @@ class StoreMenuItemRequest extends FormRequest
             'is_new' => ['nullable', 'boolean'],
             'is_vdt' => ['nullable', 'boolean'],
             'is_available' => ['nullable', 'boolean'],
-            'image' => ['nullable', 'image', 'max:2048'],
+            // 10MB — comfortably above a typical phone photo (a few MB),
+            // under the php.ini upload_max_filesize ceiling (12M). The
+            // uploaded file gets resized/re-encoded before storage
+            // (App\Support\MenuItemImage), so this only bounds what a
+            // browser is allowed to send, not what ends up on disk.
+            'image' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }

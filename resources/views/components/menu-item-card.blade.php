@@ -1,12 +1,15 @@
 @props(['item', 'table'])
 
-<div class="flex items-center justify-between gap-4 border-b border-kafeign-wood-soft/40 py-3 last:border-b-0 dark:border-kafeign-ink-border/60">
-    <div class="flex min-w-0 items-center gap-3">
-        {{-- Only renders once an admin uploads a photo (Phase 4) — every
-             item is text-only today, so this stays invisible for now. --}}
+<div class="flex items-center justify-between gap-4 border-b border-kafeign-wood-soft/40 py-4 last:border-b-0 dark:border-kafeign-ink-border/60">
+    <div class="flex min-w-0 items-center gap-4">
+        {{-- Only renders once an admin uploads a photo — most items stay
+             text-only. Sized to actually read as food photography (not an
+             icon) once one is uploaded; App\Support\MenuItemImage resizes
+             whatever the admin uploads down to a consistent quality/size
+             before it ever reaches this <img>. --}}
         @if ($item->image_url)
             <img src="{{ $item->image_url }}" alt="" loading="lazy"
-                class="h-12 w-12 shrink-0 rounded-lg object-cover">
+                class="h-24 w-24 shrink-0 rounded-xl border border-kafeign-wood-soft/40 object-cover dark:border-kafeign-ink-border/60">
         @endif
 
         <div class="min-w-0">

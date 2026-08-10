@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreMenuItemRequest;
 use App\Http\Requests\Admin\UpdateMenuItemRequest;
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Support\MenuItemImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -36,7 +37,7 @@ class MenuItemController extends Controller
         $data['sort_order'] ??= (int) MenuItem::where('category_id', $data['category_id'])->max('sort_order') + 1;
 
         if ($request->hasFile('image')) {
-            $data['image_path'] = $request->file('image')->store('menu-items', 'public');
+            $data['image_path'] = MenuItemImage::store($request->file('image'));
         }
 
         MenuItem::create($data);
@@ -62,7 +63,7 @@ class MenuItemController extends Controller
             if ($menuItem->image_path) {
                 Storage::disk('public')->delete($menuItem->image_path);
             }
-            $data['image_path'] = $request->file('image')->store('menu-items', 'public');
+            $data['image_path'] = MenuItemImage::store($request->file('image'));
         } elseif ($request->boolean('remove_image') && $menuItem->image_path) {
             Storage::disk('public')->delete($menuItem->image_path);
             $data['image_path'] = null;

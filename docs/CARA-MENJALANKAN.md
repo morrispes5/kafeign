@@ -2,13 +2,20 @@
 
 ## Persiapan (sekali saja)
 
-Ekstensi PHP `pdo_sqlite`, `sqlite3`, dan `fileinfo` harus aktif di
-`php.ini`. Kalau environment ini yang dipakai (PHP 8.4 di
-`C:\php-8.4.13`), itu sudah diaktifkan sejak Phase 0 — cek dengan:
+Ekstensi PHP `pdo_sqlite`, `sqlite3`, `fileinfo`, dan `gd` harus aktif di
+`php.ini` (`gd` dipakai untuk resize foto menu — lihat
+[ARSITEKTUR.md](ARSITEKTUR.md#foto-menu-appsupportmenuitemimagephp`)).
+Kalau environment ini yang dipakai (PHP 8.4 di `C:\php-8.4.13`), semua
+sudah diaktifkan — cek dengan:
 
 ```bash
-php -m | grep -i sqlite
+php -m | grep -iE "sqlite|gd"
 ```
+
+`upload_max_filesize` dan `post_max_size` juga sudah dinaikkan ke 12M/16M
+di `php.ini` supaya foto dari HP (biasanya beberapa MB) tidak ditolak
+sebelum sempat diproses. Kalau di-setup ulang di environment lain, ini
+perlu disesuaikan juga.
 
 Kalau project di-clone ke environment baru:
 

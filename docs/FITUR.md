@@ -155,3 +155,20 @@ korban dulu masih bisa menambah pesanan.
 Yang sudah tertutup: serangan buta/otomatis ke banyak meja sekaligus,
 dan besar kerusakannya (dibatasi 20 request/menit + 50 unit per item).
 Penutupan penuh butuh token per meja di QR — lihat [ROADMAP.md](ROADMAP.md).
+
+---
+
+## Perbaikan Foto Menu ✅
+
+Ditemukan langsung oleh user setelah pakai fitur upload foto di Phase 4
+("gambar kecil banget" + "pas upload sendiri error").
+
+| # | Temuan | Status |
+|---|---|---|
+| 8 | Upload foto dari HP (biasanya 3-8MB) ditolak — batas `upload_max_filesize` di PHP cuma 2M | **Ditutup** — dinaikkan ke 12M, plus foto sekarang di-resize otomatis jadi maks 1000px/JPEG di server (`App\Support\MenuItemImage`), jadi ukuran file tersimpan konsisten kecil apa pun yang di-upload |
+| 9 | Foto yang berhasil ter-upload gagal tampil di browser (URL menunjuk port yang salah, dari `APP_URL=http://localhost` tanpa port sementara server jalan di port 8000) | **Ditutup** — `MenuItem::image_url` diganti jadi URL root-relative (`/storage/...`), otomatis ikut origin halaman, tidak bisa lagi salah port |
+| 10 | Thumbnail foto di menu pelanggan cuma 48×48px — kebaca kayak ikon, bukan foto makanan | **Ditutup** — diperbesar ke 96×96px dengan border, thumbnail admin ikut diperbesar jadi 64×64px |
+
+Dites end-to-end: upload foto 3,44MB/4000×3000px (simulasi foto HP asli)
+lewat form sungguhan → tersimpan 219KB/1000×750px → tampil normal di
+menu pelanggan pada ukuran 96×96px.

@@ -41,7 +41,7 @@
                             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-kafeign-wood-soft/40 py-3 last:border-b-0 dark:border-kafeign-ink-border/60">
                                 <div class="flex min-w-0 items-center gap-3">
                                     @if ($item->image_url)
-                                        <img src="{{ $item->image_url }}" alt="" class="h-10 w-10 shrink-0 rounded-lg object-cover">
+                                        <img src="{{ $item->image_url }}" alt="" class="h-16 w-16 shrink-0 rounded-lg object-cover">
                                     @endif
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
