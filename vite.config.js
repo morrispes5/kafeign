@@ -12,6 +12,11 @@ export default defineConfig({
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
                 }),
+                // Warm serif for headings/wordmark — matches the artisanal
+                // coffee-shop identity from Kafeign's real signage/interior.
+                bunny('Fraunces', {
+                    weights: [500, 600, 700],
+                }),
             ],
         }),
         tailwindcss(),

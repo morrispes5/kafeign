@@ -3,7 +3,41 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* Class-based dark mode: toggled by adding/removing "dark" on <html> via
+   resources/js/app.js, instead of Tailwind's default OS-preference-only
+   media query. Lets the site keep the old site's manual light/dark toggle
+   (ported from legacy-static-site/js/main.js) with saved preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Warm serif for the wordmark and headings — the "coffee shop" voice. */
+    --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+
+    /*
+     * Kafeign brand palette, sampled from the real cafe's photos:
+     * brick/terracotta exterior signage, warm wood interior, cream walls,
+     * amber ambient lighting. Deliberately not the old competing greys/
+     * browns from the legacy CSS files.
+     */
+    --color-kafeign-maroon: #6b2a20; /* primary brand color — exterior brick/signage */
+    --color-kafeign-maroon-dark: #4a1c15; /* hover/active states, headings on light bg */
+    --color-kafeign-brown: #3c2415; /* body text on cream */
+    --color-kafeign-wood: #a9744f; /* secondary accent — wood tones, borders */
+    --color-kafeign-wood-soft: #d9bd9c; /* light borders/dividers */
+    --color-kafeign-cream: #faf3e6; /* page background — walls */
+    --color-kafeign-cream-soft: #f1e4cf; /* card surfaces */
+    --color-kafeign-amber: #d99a44; /* accent — ambient lighting, "New" badge */
+    --color-kafeign-amber-soft: #f3e2bd; /* amber tint background */
+    --color-kafeign-ink: #241410; /* dark-mode page background */
+    --color-kafeign-ink-soft: #34221a; /* dark-mode card surfaces */
+    --color-kafeign-ink-border: #4a3226; /* dark-mode borders/dividers */
+}
+
+@layer base {
+    body {
+        @apply bg-kafeign-cream text-kafeign-brown antialiased;
+    }
 }
