@@ -38,7 +38,3 @@ Buka `http://127.0.0.1:8000`. Detail lengkap ada di
 
 PHP 8.4 · Laravel 13 · SQLite · Blade · Tailwind CSS v4 · Vite ·
 vanilla JavaScript (tanpa framework frontend)
-
----
-
-<sup>Dibangun dengan bantuan <a href="https://claude.com/claude-code">Claude Code</a>.</sup>
