@@ -59,6 +59,7 @@
         ',
         'moon' => '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />',
         'chevron-right' => '<path d="M9 5l7 7-7 7" />',
+        'chevron-down' => '<path d="M5 9l7 7 7-7" />',
         'plus' => '<path d="M12 5v14M5 12h14" />',
 
         default => '',
