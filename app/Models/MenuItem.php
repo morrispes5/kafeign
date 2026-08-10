@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class MenuItem extends Model
 {
@@ -15,6 +17,7 @@ class MenuItem extends Model
         'category_id',
         'name',
         'price',
+        'image_path',
         'is_new',
         'is_vdt',
         'is_available',
@@ -35,6 +38,20 @@ class MenuItem extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Public URL for the item's photo, or null when none has been
+     * uploaded yet (true for every item today — the admin upload form
+     * that sets `image_path` lands in Phase 4). Views should treat null
+     * as "no photo" and fall back to the typography-only card, not show
+     * a broken image.
+     */
+    protected function imageUrl(): Attribute
+    {
+        return Attribute::get(
+            fn () => $this->image_path ? Storage::disk('public')->url($this->image_path) : null
+        );
     }
 
     public function orderItems(): HasMany

@@ -1,15 +1,24 @@
 @props(['item', 'table'])
 
 <div class="flex items-center justify-between gap-4 border-b border-kafeign-wood-soft/40 py-3 last:border-b-0 dark:border-kafeign-ink-border/60">
-    <div class="min-w-0">
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p class="font-medium text-kafeign-brown dark:text-kafeign-cream-soft">{{ $item->name }}</p>
-            @if ($item->is_new)
-                <x-badge-pill variant="new">Baru</x-badge-pill>
-            @endif
-            @if ($item->is_vdt)
-                <x-badge-pill variant="vdt">VDT</x-badge-pill>
-            @endif
+    <div class="flex min-w-0 items-center gap-3">
+        {{-- Only renders once an admin uploads a photo (Phase 4) — every
+             item is text-only today, so this stays invisible for now. --}}
+        @if ($item->image_url)
+            <img src="{{ $item->image_url }}" alt="" loading="lazy"
+                class="h-12 w-12 shrink-0 rounded-lg object-cover">
+        @endif
+
+        <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p class="font-medium text-kafeign-brown dark:text-kafeign-cream-soft">{{ $item->name }}</p>
+                @if ($item->is_new)
+                    <x-badge-pill variant="new">Baru</x-badge-pill>
+                @endif
+                @if ($item->is_vdt)
+                    <x-badge-pill variant="vdt">VDT</x-badge-pill>
+                @endif
+            </div>
         </div>
     </div>
 
