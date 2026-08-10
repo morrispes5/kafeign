@@ -33,7 +33,7 @@
                             Rp {{ number_format($item->subtotal, 0, ',', '.') }}
                         </span>
                         <form method="POST" action="{{ route('table.order-items.destroy', [$table, $item]) }}"
-                            onsubmit="return confirm('Hapus {{ $item->item_name }} dari pesanan?');">
+                            data-confirm="Hapus {{ $item->item_name }} dari pesanan?">
                             @csrf
                             @method('DELETE')
                             <button type="submit" aria-label="Hapus {{ $item->item_name }}"

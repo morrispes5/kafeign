@@ -53,16 +53,30 @@ dan `Order::findOrCreateOngoingForTable()` (di `App\Models\Order`)
 menangkap itu lalu query ulang, bukan bikin duplikat.
 
 ### `order_items`
-Satu baris = satu jenis item di dalam sebuah tab.
+Satu baris = satu jenis item **pada satu harga** di dalam sebuah tab.
 - `order_id`, `menu_item_id` (FK, **restrict on delete** — lihat catatan
   bahaya di bawah)
 - `item_name`, `item_price` — **snapshot** nama & harga menu item *saat
   dipesan*, bukan referensi live ke `menu_items`. Kalau harga menu
-  berubah besok, pesanan yang sudah tercatat tidak ikut berubah.
+  berubah, pesanan yang sudah tercatat tidak ikut berubah.
 - `quantity`, `subtotal` (`item_price * quantity`, dihitung otomatis
   lewat model event `saving` di `App\Models\OrderItem` — bukan
   `creating`, supaya ikut ke-update saat quantity di-top-up, bukan cuma
   saat baris pertama dibuat)
+
+**Unique index `order_items_unique_line` pada `(order_id, menu_item_id,
+item_price)`** — ini yang menegakkan dua jaminan sekaligus:
+
+1. Pesan item yang sama berulang kali **digabung** jadi satu baris
+   ("Matcha x3"), dan tidak bisa pecah jadi baris duplikat gara-gara dua
+   tap nyaris bersamaan (dulu `firstOrNew` lalu `save` adalah pola
+   read-then-write yang rawan race).
+2. `item_price` sengaja ikut jadi kunci. Kalau admin mengubah harga di
+   tengah kunjungan, unit yang sudah terlanjur dipesan **tetap di harga
+   lama**, dan unit baru masuk ke baris sendiri di harga baru. Sebelum
+   ini diperbaiki, `addItem()` menimpa snapshot harga lama sehingga
+   pelanggan bisa tertagih harga baru untuk minuman yang sudah dia pesan
+   satu jam sebelumnya.
 
 ### ⚠️ Dua foreign key yang sengaja "berbahaya" (jangan diubah tanpa paham konsekuensinya)
 
@@ -77,6 +91,38 @@ Satu baris = satu jenis item di dalam sebuah tab.
    bisa dihapus — database akan menolak. `Admin\MenuItemController::destroy`
    mengecek ini duluan dan kasih pesan ramah; tanpa pengecekan itu,
    penghapusan akan gagal dengan `QueryException` mentah.
+
+## Keamanan
+
+Pelanggan tidak pernah login — nomor meja adalah satu-satunya identitas
+yang dipunya aplikasi ini. Itu konsekuensi dari desain QR-nya, dan
+membuat endpoint pemesanan jadi permukaan serang utama.
+
+| Lapisan | Di mana | Melindungi dari |
+|---|---|---|
+| `EnsureTableSession` middleware | `app/Http/Middleware/` | Orang luar POST/DELETE ke tab meja yang tidak pernah dia buka |
+| `throttle:20,1` | grup route order-items | Skrip yang membanjiri pesanan |
+| `Order::MAX_QUANTITY_PER_ITEM` (50) | dicek di `OrderController::store` | Satu item ditumpuk sampai jutaan rupiah |
+| `LoginRequest` rate limiter (5x / 60 detik) | `app/Http/Requests/Admin/` | Tebak-tebakan password admin |
+| `auth` middleware | grup route `/admin/*` | Akses dashboard tanpa login |
+
+### ⚠️ Batas yang harus dipahami
+
+`EnsureTableSession` memberi akses berdasarkan **membuka halaman meja
+itu**. Beberapa orang satu meja masing-masing pakai HP sendiri harus
+tetap bisa pesan, dan tidak ada rahasia apa pun yang membedakan mereka
+dari orang lain yang bisa membuka URL yang sama.
+
+Artinya: penyerang yang **mau repot membuka `/table/{n}/menu` dulu**
+masih bisa menambah pesanan ke meja itu. Yang sudah tertutup adalah
+serangan buta/otomatis (kirim POST langsung ke 36 meja sekaligus), dan
+kerusakan maksimalnya dibatasi rate limit + batas jumlah per item.
+
+Menutup celah ini sepenuhnya butuh **rahasia per meja** yang hanya
+diketahui orang yang benar-benar duduk di situ — token acak yang
+ditanam di QR code tiap meja. Itu keputusan produk (mengubah isi QR yang
+dicetak, dan dropdown "pilih meja manual" perlu diganti/diberi PIN),
+bukan sesuatu yang boleh diselipkan diam-diam. Lihat [ROADMAP.md](ROADMAP.md).
 
 ## Model Eloquent (`app/Models/`)
 

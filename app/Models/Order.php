@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * One row = one table's running tab/session, from the moment the first
@@ -17,6 +18,14 @@ use Illuminate\Database\QueryException;
 class Order extends Model
 {
     use HasFactory;
+
+    /**
+     * Ceiling on how many units of one menu item a single tab may hold.
+     * Generous for a real table (even a large group), low enough that
+     * abuse of the anonymous ordering endpoint stays a nuisance rather
+     * than a several-million-rupiah bill.
+     */
+    public const MAX_QUANTITY_PER_ITEM = 50;
 
     protected $fillable = [
         'dining_table_id',
@@ -101,20 +110,58 @@ class Order extends Model
     }
 
     /**
-     * Adds a menu item to this tab. Re-adding an item already on the tab
-     * tops up its quantity (and refreshes the name/price snapshot to the
-     * item's current values) instead of creating a duplicate line — the
-     * tab reads as "Kopi Susu Dekap x3", not three separate rows.
+     * Adds a menu item to this tab. Re-ordering the same item at the same
+     * price tops up the existing line's quantity, so the tab reads
+     * "Kopi Susu Dekap x3" rather than three separate rows.
+     *
+     * The price is deliberately part of the match. If the admin changed
+     * the price since the earlier units were ordered, this opens a new
+     * line at the new price instead of repricing what the customer
+     * already committed to — a tab must never retroactively charge more
+     * (or less) for units that were ordered before the change.
+     *
+     * The (order_id, menu_item_id, item_price) unique index is what makes
+     * the "top up rather than duplicate" behaviour safe under concurrent
+     * taps; on the losing race we re-read and top up instead of failing.
      */
     public function addItem(MenuItem $menuItem, int $quantity = 1): OrderItem
     {
-        $orderItem = $this->orderItems()->firstOrNew(['menu_item_id' => $menuItem->id]);
+        $attributes = [
+            'menu_item_id' => $menuItem->id,
+            'item_price' => $menuItem->price,
+        ];
 
-        $orderItem->item_name = $menuItem->name;
-        $orderItem->item_price = $menuItem->price;
-        $orderItem->quantity = ($orderItem->quantity ?? 0) + $quantity;
-        $orderItem->save();
+        try {
+            return DB::transaction(function () use ($attributes, $menuItem, $quantity) {
+                $orderItem = $this->orderItems()
+                    ->where($attributes)
+                    ->lockForUpdate()
+                    ->first();
 
-        return $orderItem;
+                if ($orderItem) {
+                    // Set-then-save rather than increment(): increment()
+                    // skips the `saving` hook that recalculates subtotal,
+                    // which would leave the line's total stale.
+                    $orderItem->quantity += $quantity;
+                    $orderItem->save();
+
+                    return $orderItem;
+                }
+
+                return $this->orderItems()->create([
+                    ...$attributes,
+                    'item_name' => $menuItem->name,
+                    'quantity' => $quantity,
+                ]);
+            });
+        } catch (QueryException) {
+            // Lost the race to an identical concurrent add — the other
+            // request created the line, so top that one up instead.
+            $orderItem = $this->orderItems()->where($attributes)->firstOrFail();
+            $orderItem->quantity += $quantity;
+            $orderItem->save();
+
+            return $orderItem;
+        }
     }
 }

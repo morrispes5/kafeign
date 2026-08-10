@@ -26,6 +26,14 @@ dokumen lain ([FITUR.md](docs/FITUR.md) = fitur yang sudah jalan,
 - Invariant inti: **1 meja hanya boleh punya 1 order `ongoing`** —
   ditegakkan lewat partial unique index di migration `orders`, bukan
   cuma dicek di PHP. Jangan hapus/ubah index itu tanpa paham konsekuensinya.
+- Invariant kedua: **`order_items` unik per (order, item, harga)**. Harga
+  ikut jadi kunci supaya perubahan harga menu tidak pernah mengubah harga
+  unit yang sudah terlanjur dipesan. Jangan "sederhanakan" jadi unik per
+  (order, item) — itu mengembalikan bug penagihan yang sudah diperbaiki.
+- Pemesanan pelanggan bersifat anonim, jadi endpoint order dilindungi
+  berlapis (`EnsureTableSession` + throttle + batas jumlah). Batas
+  perlindungannya dijelaskan jujur di `docs/ARSITEKTUR.md` — baca dulu
+  sebelum mengubah apa pun di sekitar situ.
 - Kredensial admin ada di `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`), masih
   nilai default development — belum diganti untuk produksi.
 

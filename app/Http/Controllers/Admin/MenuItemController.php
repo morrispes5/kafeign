@@ -113,9 +113,16 @@ class MenuItemController extends Controller
         return back()->with('success', "Item \"{$menuItem->name}\" {$status}.");
     }
 
+    /**
+     * `sort_order` is deliberately left out of the array when the admin
+     * submits it empty (the field is labelled optional). The column is
+     * NOT NULL, so writing null would crash — each caller decides its own
+     * fallback instead: a new item goes to the end of its category, an
+     * edited item simply keeps the position it already had.
+     */
     private function fromRequest(StoreMenuItemRequest|UpdateMenuItemRequest $request): array
     {
-        return [
+        return array_filter([
             'category_id' => $request->integer('category_id'),
             'name' => $request->string('name')->trim()->toString(),
             'price' => $request->integer('price'),
@@ -123,6 +130,6 @@ class MenuItemController extends Controller
             'is_new' => $request->boolean('is_new'),
             'is_vdt' => $request->boolean('is_vdt'),
             'is_available' => $request->boolean('is_available'),
-        ];
+        ], fn ($value) => $value !== null);
     }
 }

@@ -38,9 +38,25 @@ class OrderController extends Controller
     public function store(AddOrderItemRequest $request, Table $table): JsonResponse
     {
         $menuItem = MenuItem::available()->findOrFail($request->integer('menu_item_id'));
+        $quantity = $request->integer('quantity', 1);
 
         $order = Order::findOrCreateOngoingForTable($table);
-        $order->addItem($menuItem, $request->integer('quantity', 1));
+
+        // The request-level `max:20` only caps a single tap. Without a
+        // ceiling on the running line total, repeated calls could stack a
+        // tab into the millions — nonsense for a cafe, and a cheap way to
+        // grief a table. A real order never gets close to this.
+        $existing = $order->orderItems()
+            ->where('menu_item_id', $menuItem->id)
+            ->sum('quantity');
+
+        if ($existing + $quantity > Order::MAX_QUANTITY_PER_ITEM) {
+            return response()->json([
+                'message' => 'Jumlah pesanan untuk item ini sudah mencapai batas. Silakan hubungi staf kalau butuh lebih banyak.',
+            ], 422);
+        }
+
+        $order->addItem($menuItem, $quantity);
 
         return response()->json([
             'message' => "{$menuItem->name} ditambahkan ke pesanan.",

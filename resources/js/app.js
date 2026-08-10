@@ -7,6 +7,22 @@
 // script in the <head> (see layouts/app.blade.php) to avoid a flash of the
 // wrong theme; this file only wires up the click handlers.
 
+// Confirmation prompts for destructive forms.
+//
+// These used to live in inline onsubmit="return confirm('... {{ $name }} ...')"
+// attributes, which broke the moment a menu item was named something like
+// Martabak 'Spesial': Blade escapes the apostrophe to &#039;, the browser
+// decodes it back to ' while parsing the attribute, and the resulting
+// JavaScript no longer parses — so the handler silently never ran and the
+// form submitted with no confirmation at all. Reading the message from a
+// data attribute instead keeps it as data and never as code.
+document.addEventListener('submit', (event) => {
+    const form = event.target.closest('form[data-confirm]');
+    if (form && ! window.confirm(form.dataset.confirm)) {
+        event.preventDefault();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const html = document.documentElement;
 

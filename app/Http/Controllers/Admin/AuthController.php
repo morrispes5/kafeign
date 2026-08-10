@@ -23,12 +23,17 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
+        $request->ensureIsNotRateLimited();
+
         if (! Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
+            $request->hitRateLimiter();
+
             return back()
                 ->withErrors(['email' => 'Email atau password salah.'])
                 ->onlyInput('email');
         }
 
+        $request->clearRateLimiter();
         $request->session()->regenerate();
 
         return redirect()->intended(route('admin.dashboard'));

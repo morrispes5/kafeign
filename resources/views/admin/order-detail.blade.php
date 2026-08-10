@@ -51,7 +51,7 @@
     @if ($order->status === \App\Enums\OrderStatus::Ongoing)
         <div class="mt-6 flex flex-col gap-3 sm:flex-row">
             <form method="POST" action="{{ route('admin.orders.clear', $order) }}" class="flex-1"
-                onsubmit="return confirm('Konfirmasi: pelanggan meja {{ $order->table->number }} sudah membayar Rp {{ number_format($order->total, 0, ',', '.') }}?');">
+                data-confirm="Konfirmasi: pelanggan meja {{ $order->table->number }} sudah membayar Rp {{ number_format($order->total, 0, ',', '.') }}?">
                 @csrf
                 <button type="submit"
                     class="w-full rounded-lg bg-kafeign-maroon py-3 text-sm font-medium text-kafeign-cream transition hover:bg-kafeign-maroon-dark">
@@ -60,7 +60,7 @@
             </form>
 
             <form method="POST" action="{{ route('admin.orders.cancel', $order) }}"
-                onsubmit="return confirm('Batalkan pesanan meja {{ $order->table->number }} tanpa pembayaran?');">
+                data-confirm="Batalkan pesanan meja {{ $order->table->number }} tanpa pembayaran?">
                 @csrf
                 <button type="submit"
                     class="w-full rounded-lg border border-kafeign-wood-soft px-5 py-3 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:border-kafeign-ink-border dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">

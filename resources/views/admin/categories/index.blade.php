@@ -39,7 +39,7 @@
                         Ubah
                     </a>
                     <form method="POST" action="{{ route('admin.categories.destroy', $category) }}"
-                        onsubmit="return confirm('Hapus kategori {{ $category->name }}?');">
+                        data-confirm="Hapus kategori {{ $category->name }}?">
                         @csrf
                         @method('DELETE')
                         <button type="submit"

@@ -120,3 +120,38 @@ tolong perbaiki file ini.
   punya 3 state (idle → loading [spinner] → sukses [centang] → idle
   lagi setelah ~0.7 detik), bukan cuma disable diam-diam seperti
   sebelumnya. Dites eksplisit ketiga state-nya muncul berurutan.
+
+---
+
+## Audit Keamanan & Perbaikan ✅
+
+Satu putaran audit menyeluruh terhadap seluruh kode, dengan tiap temuan
+dibuktikan lewat serangan/reproduksi nyata, lalu diperbaiki dan diuji
+ulang.
+
+| # | Temuan | Status |
+|---|---|---|
+| 1 | Siapa pun bisa menambah/menghapus/melihat pesanan meja mana pun (terbukti: Rp800.000 masuk ke tab orang asing dalam 1 request) | **Dikurangi drastis** — lihat catatan di bawah |
+| 2 | Login admin tanpa batas percobaan (brute force bebas) | **Ditutup** — 5x gagal → terkunci 60 detik |
+| 3 | Ubah harga menu ikut mengubah harga pesanan yang sudah masuk (terbukti pelanggan kelebihan bayar Rp7.000) | **Ditutup** — harga lama dipertahankan, unit baru masuk baris sendiri |
+| 4 | Admin edit item/kategori + kosongkan kolom "Urutan" → error 500 | **Ditutup** — ternyata kena di 2 controller, dua-duanya diperbaiki |
+| 5 | Nama menu ber-apostrof mematikan dialog konfirmasi hapus (hapus tanpa peringatan) + celah injeksi JS | **Ditutup** — pesan konfirmasi jadi data attribute, bukan kode |
+| 7 | Tidak ada unique constraint `(order, item, harga)` — dua tap bersamaan bisa bikin baris duplikat | **Ditutup** — unique index + transaksi + penanganan race |
+| 6 | Jumlah per item menumpuk tanpa batas (terbukti 1.000 porsi / Rp40 juta) | **Ditutup** — batas 50 unit per item |
+
+**Sudah dicek dan memang aman** (tidak perlu perbaikan): SQL injection
+(Eloquent parameterized), CSRF di semua form, upload SVG (ditolak
+Laravel 13, ini vektor XSS klasik), endpoint `PUT /storage/{path}`
+bawaan Laravel (butuh signature, 403), N+1 query (halaman menu 5 query).
+
+### Catatan jujur soal temuan #1
+
+Belum tertutup 100%, dan itu batasan desain bukan kelalaian: pelanggan
+tidak login, beberapa orang satu meja harus bisa pesan dari HP
+masing-masing, jadi "membuka halaman meja" adalah satu-satunya bukti
+kehadiran yang tersedia. Penyerang yang mau repot membuka halaman meja
+korban dulu masih bisa menambah pesanan.
+
+Yang sudah tertutup: serangan buta/otomatis ke banyak meja sekaligus,
+dan besar kerusakannya (dibatasi 20 request/menit + 50 unit per item).
+Penutupan penuh butuh token per meja di QR — lihat [ROADMAP.md](ROADMAP.md).

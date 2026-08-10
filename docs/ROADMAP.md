@@ -2,9 +2,41 @@
 
 ## Status
 
-Semua fase dari plan awal (Phase 0–5) **sudah selesai**. Lihat
-[FITUR.md](FITUR.md) untuk detail lengkap tiap fase termasuk apa yang
-sudah diverifikasi.
+Semua fase dari plan awal (Phase 0–5) **sudah selesai**, ditambah satu
+putaran audit keamanan. Lihat [FITUR.md](FITUR.md) untuk detail lengkap
+tiap fase termasuk apa yang sudah diverifikasi.
+
+## Yang masih terbuka (dari audit)
+
+### 1. Token per meja di QR code — satu-satunya penutup celah lintas meja
+
+Prioritas tertinggi kalau website ini benar-benar dipasang di kafe dan
+bisa diakses dari internet.
+
+Saat ini nomor meja bisa ditebak (`/table/1` … `/table/36`), dan
+`EnsureTableSession` hanya mensyaratkan penyerang membuka halaman meja
+itu dulu — hambatan, bukan tembok (penjelasan lengkap di
+[ARSITEKTUR.md](ARSITEKTUR.md#-batas-yang-harus-dipahami)).
+
+Rancangan yang menutup penuh:
+- Tambah kolom `access_token` (acak, panjang) di tabel `tables`.
+- QR tiap meja memuat `/table/{nomor}?t={token}`; token valid → sesi
+  browser itu ditandai sah untuk meja tersebut.
+- **Konsekuensi yang harus diputuskan pemilik**: dropdown "pilih nomor
+  meja manual" di halaman depan jadi bypass token, jadi harus dihapus
+  atau diganti PIN pendek yang dicetak di tent card meja. Ini mengubah
+  UX yang sekarang, makanya belum dikerjakan sepihak.
+
+### 2. `APP_DEBUG=true` di `.env.example`
+
+Bawaan Laravel, dan panduan menyuruh `cp .env.example .env`. Kalau
+dideploy apa adanya, setiap error menampilkan stack trace + path server
+ke pengunjung. Sebelum go-live: `APP_DEBUG=false` dan `APP_ENV=production`.
+
+### 3. Kredensial admin masih nilai contoh
+
+`ADMIN_PASSWORD=change-me-please` di `.env` lokal. Wajib diganti sebelum
+dipakai staf sungguhan.
 
 ## Yang Sengaja TIDAK Dikerjakan (di luar scope awal)
 

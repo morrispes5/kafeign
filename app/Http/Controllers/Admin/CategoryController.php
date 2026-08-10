@@ -53,6 +53,12 @@ class CategoryController extends Controller
             $data['slug'] = $this->uniqueSlug($data['name'], ignoreId: $category->id);
         }
 
+        // The field is optional, but the column is NOT NULL — submitting it
+        // empty means "leave the position alone", not "write null".
+        if (! $request->filled('sort_order')) {
+            unset($data['sort_order']);
+        }
+
         $category->update($data);
 
         return redirect()

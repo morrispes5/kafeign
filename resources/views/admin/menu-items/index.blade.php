@@ -78,7 +78,7 @@
                                         Ubah
                                     </a>
                                     <form method="POST" action="{{ route('admin.menu-items.destroy', $item) }}"
-                                        onsubmit="return confirm('Hapus item {{ $item->name }} secara permanen?');">
+                                        data-confirm="Hapus item {{ $item->name }} secara permanen?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"
