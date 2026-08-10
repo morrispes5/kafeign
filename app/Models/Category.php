@@ -10,6 +10,24 @@ class Category extends Model
 {
     use HasFactory;
 
+    /**
+     * The fixed inline-SVG icon set <x-icon> knows how to render (see
+     * resources/views/components/icon.blade.php) — the only valid values
+     * for the `icon` column. Centralized here so the admin category form
+     * and its validation rule can't drift out of sync with each other.
+     */
+    public const ICONS = [
+        'mug' => 'Mug',
+        'coffee-cup' => 'Cangkir Kopi',
+        'glass' => 'Gelas',
+        'leaf' => 'Daun (Matcha)',
+        'drip' => 'Dripper (Manual Brew)',
+        'mocktail-glass' => 'Gelas Mocktail',
+        'tall-glass' => 'Gelas Tinggi (Americano)',
+        'steak' => 'Steak',
+        'snack-plate' => 'Piring (Snack)',
+    ];
+
     protected $fillable = [
         'name',
         'slug',

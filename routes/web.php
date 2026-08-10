@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\MenuItemController as AdminMenuItemController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
@@ -30,5 +32,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{order}/clear', [AdminOrderController::class, 'clear'])->name('orders.clear');
         Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('orders.cancel');
+
+        Route::patch('/menu-items/{menuItem}/toggle-availability', [AdminMenuItemController::class, 'toggleAvailability'])
+            ->name('menu-items.toggle-availability');
+        Route::resource('menu-items', AdminMenuItemController::class)
+            ->except('show')
+            ->parameters(['menu-items' => 'menuItem']);
+        Route::resource('categories', AdminCategoryController::class)->except('show');
     });
 });

@@ -42,6 +42,12 @@
                     <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
                         Dashboard
                     </a>
+                    <a href="{{ route('admin.menu-items.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
+                        Menu
+                    </a>
+                    <a href="{{ route('admin.categories.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
+                        Kategori
+                    </a>
                     <form method="POST" action="{{ route('admin.logout') }}">
                         @csrf
                         <button type="submit" class="rounded-lg border border-kafeign-wood-soft px-3 py-2 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:border-kafeign-ink-border dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
