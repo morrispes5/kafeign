@@ -22,7 +22,7 @@
         </ul>
     </nav>
 
-    <div class="space-y-10">
+    <div class="space-y-10 pb-24">
         @foreach ($categories as $category)
             <section id="kategori-{{ $category->slug }}" class="scroll-mt-32">
                 <div class="mb-3 flex items-center gap-2">
@@ -41,11 +41,13 @@
                 @else
                     <div class="rounded-xl border border-kafeign-wood-soft/50 bg-kafeign-cream-soft/40 px-4 dark:border-kafeign-ink-border/60 dark:bg-kafeign-ink-soft/30">
                         @foreach ($category->menuItems as $item)
-                            <x-menu-item-card :item="$item" />
+                            <x-menu-item-card :item="$item" :table="$table" />
                         @endforeach
                     </div>
                 @endif
             </section>
         @endforeach
     </div>
+
+    <x-order-summary :table="$table" :order="$order" />
 @endsection

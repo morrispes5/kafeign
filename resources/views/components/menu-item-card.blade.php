@@ -1,4 +1,4 @@
-@props(['item'])
+@props(['item', 'table'])
 
 <div class="flex items-center justify-between gap-4 border-b border-kafeign-wood-soft/40 py-3 last:border-b-0 dark:border-kafeign-ink-border/60">
     <div class="min-w-0">
@@ -18,10 +18,11 @@
             Rp {{ number_format($item->price, 0, ',', '.') }}
         </span>
 
-        {{-- Inert in Phase 1 — wired up to POST /table/{table}/order-items in Phase 2. --}}
-        <button type="button" disabled aria-label="Tambah {{ $item->name }} (segera hadir)"
-            title="Pemesanan aktif mulai Phase 2"
-            class="inline-flex h-8 w-8 shrink-0 cursor-not-allowed items-center justify-center rounded-full border border-kafeign-wood-soft/60 text-kafeign-brown/30 dark:border-kafeign-ink-border dark:text-kafeign-cream-soft/25">
+        <button type="button" data-add-item
+            data-order-items-url="{{ route('table.order-items.store', $table) }}"
+            data-menu-item-id="{{ $item->id }}"
+            aria-label="Tambah {{ $item->name }}"
+            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-kafeign-wood-soft text-kafeign-maroon-dark transition hover:border-kafeign-maroon hover:bg-kafeign-maroon hover:text-kafeign-cream disabled:cursor-wait disabled:opacity-60 dark:border-kafeign-ink-border dark:text-kafeign-amber dark:hover:bg-kafeign-amber dark:hover:text-kafeign-ink">
             <x-icon name="plus" class="h-4 w-4" />
         </button>
     </div>

@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Kafeign')</title>
 
     {{-- Applied before Vite's CSS/JS load so there's no flash of the wrong
@@ -70,6 +71,7 @@
         <nav class="mt-6 flex flex-col gap-1 text-sm">
             @isset($table)
                 <a href="{{ route('table.menu', $table) }}" class="rounded-lg px-3 py-2 transition hover:bg-kafeign-cream-soft dark:hover:bg-kafeign-ink">Menu</a>
+                <a href="{{ route('table.order', $table) }}" class="rounded-lg px-3 py-2 transition hover:bg-kafeign-cream-soft dark:hover:bg-kafeign-ink">Pesanan Saya</a>
             @endisset
             <a href="{{ route('table.entry') }}" class="rounded-lg px-3 py-2 transition hover:bg-kafeign-cream-soft dark:hover:bg-kafeign-ink">Ganti Meja</a>
         </nav>

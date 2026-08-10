@@ -23,6 +23,10 @@ class MenuController extends Controller
         return view('table.menu', [
             'table' => $table,
             'categories' => $categories,
+            // Powers the sticky order-summary bar: if Agus is still
+            // browsing after his 12pm matcha, it shows "1 item" right
+            // away instead of looking like an empty tab.
+            'order' => $table->activeOrder(),
         ]);
     }
 }

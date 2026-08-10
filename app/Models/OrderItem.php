@@ -36,9 +36,11 @@ class OrderItem extends Model
     protected static function booted(): void
     {
         // subtotal is always item_price * quantity — derived automatically
-        // whenever an order item is created, so callers never compute it
-        // themselves and risk it drifting out of sync.
-        static::creating(function (OrderItem $orderItem) {
+        // whenever an order item is created OR updated (e.g. Order::addItem()
+        // topping up the quantity of an existing line), so callers never
+        // compute it themselves and risk it drifting out of sync. `saving`
+        // fires on both inserts and updates, unlike `creating`.
+        static::saving(function (OrderItem $orderItem) {
             $orderItem->subtotal = $orderItem->item_price * $orderItem->quantity;
         });
     }

@@ -31,12 +31,17 @@ class TableEntryController extends Controller
     /**
      * QR deep-link landing spot for a specific table.
      *
-     * Phase 1: just forwards straight to the menu — there's no ordering
-     * concept yet. Phase 2 will make this check for an ongoing order first
-     * and show the running tab instead when one already exists.
+     * If the table already has an ongoing tab (e.g. Agus came back an
+     * hour later and re-scanned the same table's QR code), send them
+     * straight to it instead of the menu — otherwise there's nothing
+     * ordered yet, so send them to browse.
      */
     public function show(Table $table): RedirectResponse
     {
+        if ($table->activeOrder()) {
+            return redirect()->route('table.order', $table);
+        }
+
         return redirect()->route('table.menu', $table);
     }
 }
