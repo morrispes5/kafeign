@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservasi Meja - Kafeign</title>
+    
+    <link rel="stylesheet" href="css/booking.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    
+    <main>
+        <h1>Reservasi Meja</h1>
+        <p style="text-align: center; margin-bottom: 2rem;">
+            Isi formulir di bawah ini untuk memesan meja di Kafeign dan nikmati kopi pilihan kami.
+        </p>
+
+        <form action="#" method="POST">
+            <!-- Nama -->
+            <label for="name">Nama Lengkap</label>
+            <input type="text" id="name" name="name" placeholder="Masukkan nama lengkap Anda" required>
+
+            <!-- Email -->
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="Masukkan email Anda" required>
+
+            <!-- Nomor Telepon -->
+            <label for="phone">Nomor Telepon</label>
+            <input type="tel" id="phone" name="phone" placeholder="Masukkan nomor telepon Anda" required>
+
+            <!-- Tanggal Reservasi -->
+            <label for="date">Tanggal Reservasi</label>
+            <input type="date" id="date" name="date" required>
+
+            <!-- Waktu Reservasi -->
+            <label for="time">Waktu Reservasi</label>
+            <input type="time" id="time" name="time" required>
+
+            <!-- Jumlah Orang -->
+            <label for="guests">Jumlah Orang</label>
+            <select id="guests" name="guests" required>
+                <option value="" disabled selected>Pilih jumlah orang</option>
+                <option value="1">1 Orang</option>
+                <option value="2">2 Orang</option>
+                <option value="3">3 Orang</option>
+                <option value="4">4 Orang</option>
+                <option value="5">5 Orang</option>
+                <option value="6">6 Orang</option>
+                <option value="7+">Lebih dari 6 Orang</option>
+            </select>
+
+            <!-- Catatan Tambahan -->
+            <label for="notes">Catatan Tambahan</label>
+            <textarea id="notes" name="notes" rows="4" placeholder="Contoh: Permintaan khusus atau lokasi meja yang diinginkan"></textarea>
+
+            <div class="tombol">
+                <!-- Tombol Submit -->
+                <button type="button" onclick="if (history.length > 1) { history.back(); } else { window.location.href = 'default-page.html'; }">Back</button>
+                <button type="submit">Kirim Reservasi</button>
+            </div>
+        </form>
+    </main>
+
+    <footer>
+        <div class="footer-content" style="text-align: center; padding: 1rem;">
+            <p>&copy; 2024 Kafeign Coffee. All Rights Reserved.</p>
+            <div class="social-icons" style="margin-top: 1rem;">
+                <a href="#" class="fab fa-instagram" style="margin-right: 1rem; color: #4b3832;"></a>
+                <a href="#" class="fab fa-facebook" style="margin-right: 1rem; color: #4b3832;"></a>
+                <a href="#" class="fab fa-twitter" style="color: #4b3832;"></a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

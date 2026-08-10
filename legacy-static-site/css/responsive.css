@@ -1,0 +1,14 @@
+@media screen and (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+    .nav-links {
+        display: none;
+    }
+    .nav-toggle {
+        display: block;
+    }
+    .menu-preview-grid {
+        grid-template-columns: 1fr;
+    }
+}

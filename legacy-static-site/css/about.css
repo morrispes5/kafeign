@@ -1,0 +1,138 @@
+:root {
+    --primary-color: #4b3832;
+    --secondary-color: #f8f5f1;
+    --accent-color: #7f5539;
+    --text-color-light: #ffffff;
+    --text-color-dark: #2e2e2e;
+    --transition-speed: 0.3s;
+}
+
+/* Gaya Umum Halaman About */
+section#about {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+section#about h2 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+section#about h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background-color: var(--accent-color);
+}
+
+section#about p {
+    max-width: 800px;
+    margin: 1.5rem auto;
+    line-height: 1.6;
+    color: var(--primary-color);
+}
+
+/* Artikel */
+section#about article {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 2rem;
+    margin: 2rem 0;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    transition: transform var(--transition-speed);
+}
+
+section#about article:hover {
+    transform: translateY(-10px);
+}
+
+section#about h3 {
+    font-size: 1.8rem;
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+}
+
+
+section#about ul {
+    list-style-type: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 0;
+}
+
+section#about ul li {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+    width: 250px;
+    transition: all var(--transition-speed);
+}
+
+section#about ul li:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+
+footer {
+    background-color: var(--primary-color);
+    color: var(--text-color-light);
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+footer .social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+footer .social-icons a {
+    color: var(--text-color-light);
+    font-size: 1.5rem;
+    text-decoration: none;
+    transition: color var(--transition-speed);
+}
+
+footer .social-icons a:hover {
+    color: var(--accent-color);
+}
+
+/* Dark Mode Adjustments */
+body.dark-mode section#about {
+    background-color: var(--text-color-dark);
+}
+
+body.dark-mode section#about h2,
+body.dark-mode section#about p,
+body.dark-mode section#about h3 {
+    color: var(--secondary-color);
+}
+
+/* Responsivitas */
+@media screen and (max-width: 768px) {
+    section#about h2 {
+        font-size: 2rem;
+    }
+
+    section#about ul {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    section#about ul li {
+        width: 100%;
+    }
+}
