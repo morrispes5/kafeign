@@ -22,9 +22,9 @@ enum OrderStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Ongoing => 'Ongoing',
-            self::Paid => 'Paid',
-            self::Cancelled => 'Cancelled',
+            self::Ongoing => 'Berjalan',
+            self::Paid => 'Lunas',
+            self::Cancelled => 'Dibatalkan',
         };
     }
 }

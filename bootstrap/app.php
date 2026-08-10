@@ -12,7 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // No named "login" route exists (the admin login lives at
+        // /admin/login, named admin.login) — without this, Laravel's
+        // default `auth` middleware would throw trying to redirect
+        // unauthenticated visitors to a route that doesn't exist.
+        $middleware->redirectGuestsTo('/admin/login');
+        $middleware->redirectUsersTo('/admin/dashboard');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
