@@ -61,6 +61,7 @@
         'chevron-right' => '<path d="M9 5l7 7-7 7" />',
         'chevron-down' => '<path d="M5 9l7 7 7-7" />',
         'plus' => '<path d="M12 5v14M5 12h14" />',
+        'check' => '<path d="M5 13l4 4L19 7" />',
 
         default => '',
     };

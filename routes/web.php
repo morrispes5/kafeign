@@ -18,6 +18,7 @@ Route::prefix('/table/{table:number}')->group(function () {
     Route::get('/menu', [MenuController::class, 'index'])->name('table.menu');
     Route::get('/order', [OrderController::class, 'show'])->name('table.order');
     Route::post('/order-items', [OrderController::class, 'store'])->name('table.order-items.store');
+    Route::delete('/order-items/{orderItem}', [OrderController::class, 'destroy'])->name('table.order-items.destroy');
 });
 
 Route::prefix('admin')->name('admin.')->group(function () {

@@ -28,9 +28,20 @@
                             {{ $item->quantity }} &times; Rp {{ number_format($item->item_price, 0, ',', '.') }}
                         </p>
                     </div>
-                    <span class="shrink-0 font-display text-sm font-semibold text-kafeign-maroon-dark dark:text-kafeign-amber">
-                        Rp {{ number_format($item->subtotal, 0, ',', '.') }}
-                    </span>
+                    <div class="flex shrink-0 items-center gap-3">
+                        <span class="font-display text-sm font-semibold text-kafeign-maroon-dark dark:text-kafeign-amber">
+                            Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                        </span>
+                        <form method="POST" action="{{ route('table.order-items.destroy', [$table, $item]) }}"
+                            onsubmit="return confirm('Hapus {{ $item->item_name }} dari pesanan?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" aria-label="Hapus {{ $item->item_name }}"
+                                class="text-kafeign-brown/40 transition hover:text-red-600 dark:text-kafeign-cream-soft/40 dark:hover:text-red-400">
+                                <x-icon name="close" class="h-4 w-4" />
+                            </button>
+                        </form>
+                    </div>
                 </div>
             @endforeach
         </div>

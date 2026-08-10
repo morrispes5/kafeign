@@ -41,6 +41,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const summaryTotal = document.querySelector('[data-order-summary-total]');
 
     document.querySelectorAll('[data-add-item]').forEach((button) => {
+        const idleIcon = button.querySelector('[data-icon-idle]');
+        const loadingIcon = button.querySelector('[data-icon-loading]');
+        const successIcon = button.querySelector('[data-icon-success]');
+
+        const showState = (state) => {
+            idleIcon?.classList.toggle('hidden', state !== 'idle');
+            loadingIcon?.classList.toggle('hidden', state !== 'loading');
+            successIcon?.classList.toggle('hidden', state !== 'success');
+        };
+
         button.addEventListener('click', async () => {
             const url = button.dataset.orderItemsUrl;
             if (!url || button.disabled) {
@@ -48,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             button.disabled = true;
+            showState('loading');
 
             try {
                 const response = await fetch(url, {
@@ -73,8 +84,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (summaryTotal) summaryTotal.textContent = data.order.total_formatted;
                 summaryBar?.classList.remove('translate-y-full');
                 summaryBar?.classList.add('translate-y-0');
+
+                showState('success');
+                setTimeout(() => showState('idle'), 700);
             } catch (error) {
                 console.error('Gagal menambah pesanan:', error);
+                showState('idle');
                 button.classList.add('border-red-500');
                 setTimeout(() => button.classList.remove('border-red-500'), 1200);
             } finally {

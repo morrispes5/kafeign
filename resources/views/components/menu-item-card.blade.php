@@ -32,7 +32,17 @@
             data-menu-item-id="{{ $item->id }}"
             aria-label="Tambah {{ $item->name }}"
             class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-kafeign-wood-soft text-kafeign-maroon-dark transition hover:border-kafeign-maroon hover:bg-kafeign-maroon hover:text-kafeign-cream disabled:cursor-wait disabled:opacity-60 dark:border-kafeign-ink-border dark:text-kafeign-amber dark:hover:bg-kafeign-amber dark:hover:text-kafeign-ink">
-            <x-icon name="plus" class="h-4 w-4" />
+            {{-- Three pre-rendered states swapped by app.js, so a click
+                 never has to wait for the fetch before showing feedback. --}}
+            <span data-icon-idle>
+                <x-icon name="plus" class="h-4 w-4" />
+            </span>
+            <span data-icon-loading class="hidden">
+                <span class="block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+            </span>
+            <span data-icon-success class="hidden">
+                <x-icon name="check" class="h-4 w-4" />
+            </span>
         </button>
     </div>
 </div>
