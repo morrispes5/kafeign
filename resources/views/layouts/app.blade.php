@@ -77,13 +77,9 @@
         </nav>
     </aside>
 
-    <main class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-        @if (session('info'))
-            <div class="mb-6 rounded-lg border border-kafeign-wood-soft bg-kafeign-cream-soft px-4 py-3 text-sm text-kafeign-brown dark:border-kafeign-ink-border dark:bg-kafeign-ink-soft dark:text-kafeign-cream-soft">
-                {{ session('info') }}
-            </div>
-        @endif
+    <x-toast-host />
 
+    <main class="mx-auto max-w-3xl px-4 py-6 sm:px-6">
         @yield('content')
     </main>
 

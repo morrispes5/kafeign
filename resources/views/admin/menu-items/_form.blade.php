@@ -73,7 +73,10 @@
 
 <div class="mt-5 border-t border-kafeign-wood-soft/40 pt-4 dark:border-kafeign-ink-border/60">
     <label for="image" class="mb-1.5 block text-xs font-medium uppercase tracking-wide text-kafeign-wood dark:text-kafeign-wood-soft">
-        Foto Item <span class="normal-case text-kafeign-brown/50 dark:text-kafeign-cream-soft/50">(opsional, JPG/PNG/WebP maks 2MB)</span>
+        {{-- Limit read from config, never hardcoded: this label once said
+             2MB while the server accepted 10MB, so uploads the admin was
+             told to expect kept failing. --}}
+        Foto Item <span class="normal-case text-kafeign-brown/50 dark:text-kafeign-cream-soft/50">(opsional, JPG/PNG/WebP maks {{ (int) (config('kafeign.menu_photo.max_kb') / 1024) }}MB — foto besar otomatis dikecilkan)</span>
     </label>
 
     @if ($menuItem?->image_url)

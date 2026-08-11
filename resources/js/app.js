@@ -7,6 +7,122 @@
 // script in the <head> (see layouts/app.blade.php) to avoid a flash of the
 // wrong theme; this file only wires up the click handlers.
 
+import { initToasts, showToast } from './toast';
+
+/**
+ * Every customer-facing fetch() goes through here.
+ *
+ * Before this existed, app.js checked `response.ok` and threw away
+ * everything else — so the server's messages never reached the customer and
+ * a failure showed up only as an unexplained red flash. It also assumed the
+ * body was always JSON; an HTML error page made .json() throw and buried the
+ * real cause.
+ *
+ * Note this only works because bootstrap/app.php now ORs expectsJson() into
+ * shouldRenderJsonWhen. Without that, Laravel answers these requests with
+ * HTML or a 302 and none of the branches below can fire.
+ *
+ * @returns {Promise<{ok: boolean, status: number, data: object}>}
+ */
+export async function postJson(url, body = {}, options = {}) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+    let response;
+    try {
+        response = await fetch(url, {
+            method: options.method ?? 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: JSON.stringify(body),
+        });
+    } catch (error) {
+        console.error('Network error:', error);
+        showToast('Gagal terhubung ke server. Coba lagi.', 'error');
+
+        return { ok: false, status: 0, data: {} };
+    }
+
+    // A body that isn't JSON must not mask the status code.
+    let data = {};
+    try {
+        data = await response.json();
+    } catch {
+        data = {};
+    }
+
+    if (response.ok) {
+        if (data.message && options.silentSuccess !== true) {
+            showToast(data.message, 'success');
+        }
+
+        return { ok: true, status: response.status, data };
+    }
+
+    handleErrorResponse(response.status, data);
+
+    return { ok: false, status: response.status, data };
+}
+
+function firstValidationError(data) {
+    if (data.message) {
+        return data.message;
+    }
+
+    const errors = data.errors ?? {};
+    for (const messages of Object.values(errors)) {
+        if (Array.isArray(messages) && messages.length > 0) {
+            return messages[0];
+        }
+    }
+
+    return null;
+}
+
+function handleErrorResponse(status, data) {
+    switch (status) {
+        case 422:
+            showToast(firstValidationError(data) ?? 'Ada yang tidak beres dengan pesanan kamu.', 'warning');
+            break;
+
+        case 403:
+            // EnsureTableSession rejects a session that hasn't opened this
+            // table's page. That IS recoverable by reloading, but the
+            // customer has no way to know it — so offer the fix directly.
+            showToast(data.message ?? 'Kamu belum membuka halaman meja ini.', 'error', {
+                actionLabel: 'Muat Ulang',
+                onAction: () => window.location.reload(),
+                autoDismiss: false,
+            });
+            break;
+
+        case 419:
+            // The CSRF token expired. Reloading refreshes the meta tag, and
+            // there is nothing else the customer can usefully do.
+            showToast('Sesi kamu kedaluwarsa. Halaman akan dimuat ulang.', 'warning');
+            setTimeout(() => window.location.reload(), 2000);
+            break;
+
+        case 429:
+            // Hardcoded in Indonesian on purpose: Laravel's built-in throttle
+            // message is English ("Too Many Attempts.") and would otherwise
+            // reach an Indonesian customer untranslated.
+            showToast('Terlalu banyak permintaan. Tunggu sebentar ya.', 'warning');
+            break;
+
+        default:
+            showToast(
+                status >= 500
+                    ? 'Terjadi kesalahan di server. Coba lagi sebentar lagi.'
+                    : (data.message ?? 'Permintaan gagal diproses.'),
+                'error',
+            );
+    }
+}
+
 // Confirmation prompts for destructive forms.
 //
 // These used to live in inline onsubmit="return confirm('... {{ $name }} ...')"
@@ -47,11 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('[data-sidebar-close]')?.addEventListener('click', closeSidebar);
     backdrop?.addEventListener('click', closeSidebar);
 
-    // --- Add-to-order (Phase 2) ------------------------------------------
-    // Menu page "+" buttons POST to /table/{table}/order-items and get
-    // back JSON, so the sticky order-summary bar (components/order-
-    // summary.blade.php) can update in place without a page reload.
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    initToasts();
+
+    // --- Add-to-order ----------------------------------------------------
+    // Menu page "+" buttons POST and get JSON back, so the sticky summary
+    // bar (components/order-summary.blade.php) updates in place without a
+    // reload. Phase 7 repoints these at the cart endpoint; the button-state
+    // and summary-updating mechanics stay the same.
     const summaryBar = document.querySelector('[data-order-summary]');
     const summaryCount = document.querySelector('[data-order-summary-count]');
     const summaryTotal = document.querySelector('[data-order-summary-total]');
@@ -76,26 +194,15 @@ document.addEventListener('DOMContentLoaded', () => {
             button.disabled = true;
             showState('loading');
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-CSRF-TOKEN': csrfToken ?? '',
-                    },
-                    body: JSON.stringify({
-                        menu_item_id: button.dataset.menuItemId,
-                        quantity: 1,
-                    }),
-                });
+            // postJson surfaces the server's message itself — success and
+            // every failure mode — so there is nothing to report here beyond
+            // returning the button to a sane state.
+            const { ok, data } = await postJson(url, {
+                menu_item_id: button.dataset.menuItemId,
+                quantity: 1,
+            });
 
-                if (!response.ok) {
-                    throw new Error(`Add to order failed with status ${response.status}`);
-                }
-
-                const data = await response.json();
-
+            if (ok && data.order) {
                 if (summaryCount) summaryCount.textContent = data.order.item_count;
                 if (summaryTotal) summaryTotal.textContent = data.order.total_formatted;
                 summaryBar?.classList.remove('translate-y-full');
@@ -103,14 +210,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 showState('success');
                 setTimeout(() => showState('idle'), 700);
-            } catch (error) {
-                console.error('Gagal menambah pesanan:', error);
+            } else {
                 showState('idle');
-                button.classList.add('border-red-500');
-                setTimeout(() => button.classList.remove('border-red-500'), 1200);
-            } finally {
-                button.disabled = false;
             }
+
+            button.disabled = false;
         });
     });
 });

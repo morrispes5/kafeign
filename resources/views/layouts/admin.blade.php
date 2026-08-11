@@ -59,19 +59,9 @@
         </div>
     </header>
 
+    <x-toast-host />
+
     <main class="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-        @if (session('success'))
-            <div class="mb-6 rounded-lg border border-kafeign-wood-soft bg-kafeign-cream-soft px-4 py-3 text-sm text-kafeign-brown dark:border-kafeign-ink-border dark:bg-kafeign-ink-soft dark:text-kafeign-cream-soft">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div class="mb-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-                {{ session('error') }}
-            </div>
-        @endif
-
         @yield('content')
     </main>
 

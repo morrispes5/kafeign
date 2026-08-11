@@ -22,7 +22,7 @@ class UpdateMenuItemRequest extends FormRequest
             'is_vdt' => ['nullable', 'boolean'],
             'is_available' => ['nullable', 'boolean'],
             // See StoreMenuItemRequest — same reasoning.
-            'image' => ['nullable', 'image', 'max:10240'],
+            'image' => ['nullable', 'image', 'max:'.config('kafeign.menu_photo.max_kb')],
             'remove_image' => ['nullable', 'boolean'],
         ];
     }

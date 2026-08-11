@@ -38,10 +38,29 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
+
+            // These three defaults are wrong for this app's money paths.
+            //
+            // Stock decrement and order settlement both read-then-write
+            // inside a transaction. Under DEFERRED, such a transaction takes
+            // a read lock first and must upgrade to a write lock; if another
+            // writer got there in between, SQLite cannot upgrade and — with
+            // busy_timeout unset — fails instantly with "database is
+            // locked", precisely under the concurrency this logic exists to
+            // handle. IMMEDIATE takes the write lock up front, and the
+            // timeout makes a brief collision wait rather than fail.
+            //
+            // WAL lets the cashier's 10s dashboard poll read without
+            // blocking a settlement write happening at the same moment.
+            //
+            // Worth knowing: lockForUpdate() is a NO-OP on SQLite (its
+            // grammar compiles the lock clause to an empty string). Any
+            // safety in this codebase comes from unique indexes plus
+            // catch-and-retry, never from row locks.
+            'busy_timeout' => 5000,
+            'journal_mode' => 'WAL',
             'synchronous' => null,
-            'transaction_mode' => 'DEFERRED',
+            'transaction_mode' => 'IMMEDIATE',
         ],
 
         'mysql' => [
