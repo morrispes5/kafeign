@@ -59,7 +59,9 @@ npm run build
 | `/` | Pelanggan — pilih meja |
 | `/table/{1-36}/menu` | Pelanggan — langsung ke menu meja tertentu |
 | `/admin/login` | Admin/kasir |
-| `/admin/dashboard` | Admin — setelah login |
+| `/admin/dashboard` | Admin — meja yang sedang aktif |
+| `/admin/orders` | Admin — Riwayat: pesanan yang sudah lunas/dibatalkan |
+| `/admin/orders/{id}/receipt` | Admin — struk cetak (link-nya ada di halaman detail pesanan lunas) |
 
 ## Login Admin
 
@@ -134,4 +136,25 @@ App\Models\Order::where('status', 'ongoing')->count();
 
 // Cek 1 item menu
 App\Models\MenuItem::where('name', 'Matcha')->first();
+
+// Pesanan yang sudah lunas hari ini + nomor struknya (Phase 9)
+App\Models\Order::paid()->whereDate('business_date', today())->get(['id', 'receipt_number', 'payment_method', 'total_frozen']);
 ```
+
+## Checklist Sebelum Go-Live
+
+Poin-poin ini **tidak** untuk dev lokal sehari-hari (jangan diubah di
+laptop development) — cuma relevan begitu server ini benar-benar
+dipasang di kafe dan bisa diakses orang lain:
+
+- [ ] `.env` produksi: `APP_DEBUG=false` dan `APP_ENV=production` —
+  kalau tidak, setiap error menampilkan stack trace + path server ke
+  pengunjung. `.env.example` sengaja tetap `APP_DEBUG=true` untuk dev
+  lokal, jangan ubah filenya, cukup ubah `.env` di server produksi.
+- [ ] `ADMIN_PASSWORD` sudah diganti dari default (`php artisan admin:create`,
+  lalu samakan di `.env` — lihat "Kelola akun admin" di atas).
+- [ ] Kalau website akan diakses publik lewat internet (bukan cuma wifi
+  kafe): baca catatan tentang celah lintas-meja di
+  [ARSITEKTUR.md](ARSITEKTUR.md#-batas-yang-harus-dipahami) dan opsi
+  penutupnya di [ROADMAP.md](ROADMAP.md) sebelum mengandalkan sistem ini
+  untuk keamanan penuh.

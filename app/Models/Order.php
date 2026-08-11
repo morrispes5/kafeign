@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +28,14 @@ class Order extends Model
      */
     public const MAX_QUANTITY_PER_ITEM = 50;
 
+    // Deliberately does NOT include payment_method, cash_received,
+    // total_frozen, receipt_number or business_date. Those five columns
+    // must only ever be written by the single atomic query-builder
+    // update() inside Admin\OrderController::clear() (see that method) —
+    // never through a normal $order->update()/fill()/save() call. There
+    // must be no way to retype a total or receipt number after the fact
+    // through an ordinary mass-assignment. Same idea as StockLedger
+    // bypassing MenuItem::$fillable to write `stock`.
     protected $fillable = [
         'dining_table_id',
         'status',
@@ -41,6 +50,10 @@ class Order extends Model
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
             'last_item_added_at' => 'datetime',
+            'payment_method' => PaymentMethod::class,
+            'cash_received' => 'integer',
+            'total_frozen' => 'integer',
+            'business_date' => 'date',
         ];
     }
 
@@ -55,12 +68,35 @@ class Order extends Model
     }
 
     /**
-     * The running total, computed from line items rather than stored, so
+     * The running total. For a paid order this is total_frozen — the
+     * exact amount charged at the moment of payment, which must never
+     * change even if order_items were somehow read again later. For
+     * every order that ISN'T paid, total_frozen is NULL and this falls
+     * back to the original behaviour: computed live from order_items, so
      * it can never drift from what was actually ordered.
+     *
+     * `??`, not `?:` — a genuinely-zero frozen total must still win
+     * here, not fall through to a live re-sum.
      */
     protected function total(): Attribute
     {
-        return Attribute::get(fn () => $this->orderItems->sum('subtotal'));
+        return Attribute::get(fn () => $this->total_frozen ?? $this->orderItems->sum('subtotal'));
+    }
+
+    /**
+     * "Kembalian" for a cash payment — null for every non-cash payment
+     * and every order that isn't paid. Deliberately not a stored column:
+     * it's fully derived from two values that are already frozen
+     * (cash_received, total via total_frozen), so a third stored number
+     * can't itself drift from the two it would be computed from.
+     */
+    protected function changeDue(): Attribute
+    {
+        return Attribute::get(
+            fn () => $this->payment_method?->requiresCashReceived() && $this->cash_received !== null
+                ? $this->cash_received - $this->total
+                : null
+        );
     }
 
     public function scopeOngoing($query)
@@ -71,6 +107,17 @@ class Order extends Model
     public function scopePaid($query)
     {
         return $query->where('status', OrderStatus::Paid);
+    }
+
+    /**
+     * Every order that's left the active dashboard, either by being paid
+     * or cancelled — what Admin\OrderController::history() lists. A
+     * cashier finding an old order today has no route back to it at all
+     * once it leaves the dashboard; this scope is what closes that gap.
+     */
+    public function scopeClosed($query)
+    {
+        return $query->whereIn('status', [OrderStatus::Paid, OrderStatus::Cancelled]);
     }
 
     /**

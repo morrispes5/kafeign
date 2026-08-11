@@ -72,5 +72,15 @@ di riwayat (`git log`). Urutannya:
 4. **Phase 3** — Dashboard admin: login, pantau meja aktif, bersihkan meja
 5. **Phase 4** — Admin bisa kelola menu (CRUD) + upload foto
 6. **Phase 5** — Polish: halaman error custom, hapus item dari pesanan, dll
+7. **Phase 6** — Fondasi: server bisa kirim pesan JSON ke pelanggan, SQLite
+   tahan konkurensi, sistem toast
+8. **Phase 7** — Keranjang: tap "+" masuk keranjang privat dulu, baru jadi
+   order sungguhan setelah pelanggan menekan "Kirim Pesanan"
+9. **Phase 8** — Stok otomatis per item, berkurang saat submit, item habis
+   tetap tampil (bukan hilang)
+10. **Phase 9** — Pembayaran & struk: metode bayar, kembalian otomatis
+    untuk tunai, nomor struk berurutan, total dibekukan saat lunas
 
-Detail lengkap tiap fase ada di [FITUR.md](FITUR.md).
+Di antaranya juga ada satu putaran audit keamanan dan perbaikan foto
+menu (bukan "phase" bernomor, tapi ikut tercatat di
+[FITUR.md](FITUR.md)). Detail lengkap tiap fase ada di situ.

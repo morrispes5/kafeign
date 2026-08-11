@@ -2,9 +2,11 @@
 
 ## Status
 
-Semua fase dari plan awal (Phase 0–5) **sudah selesai**, ditambah satu
-putaran audit keamanan. Lihat [FITUR.md](FITUR.md) untuk detail lengkap
-tiap fase termasuk apa yang sudah diverifikasi.
+Phase 0–9 **sudah selesai** (lihat [FITUR.md](FITUR.md) untuk detail
+lengkap tiap fase, termasuk apa yang sudah diverifikasi), ditambah satu
+putaran audit keamanan dan perbaikan foto menu. Phase 9 (Pembayaran &
+Struk) menutup dua dari tiga catatan "masih terbuka" versi sebelumnya —
+lihat perubahan di bawah.
 
 ## Yang masih terbuka (dari audit)
 
@@ -31,12 +33,17 @@ Rancangan yang menutup penuh:
 
 Bawaan Laravel, dan panduan menyuruh `cp .env.example .env`. Kalau
 dideploy apa adanya, setiap error menampilkan stack trace + path server
-ke pengunjung. Sebelum go-live: `APP_DEBUG=false` dan `APP_ENV=production`.
+ke pengunjung. Ini benar untuk dev lokal (dan sengaja dibiarkan begitu di
+`.env.example` — mengubahnya akan merusak pengalaman debug sehari-hari),
+tapi **sebelum go-live**: `APP_DEBUG=false` dan `APP_ENV=production` di
+`.env` yang sungguhan dipakai server produksi. Lihat checklist go-live di
+[CARA-MENJALANKAN.md](CARA-MENJALANKAN.md).
 
-### 3. Kredensial admin masih nilai contoh
+### ~~3. Kredensial admin masih nilai contoh~~ — sudah beres
 
-`ADMIN_PASSWORD=change-me-please` di `.env` lokal. Wajib diganti sebelum
-dipakai staf sungguhan.
+`ADMIN_PASSWORD` di `.env` lokal sudah bukan `change-me-please` lagi
+(dicek ulang saat pengerjaan Phase 9). Tidak ada tindakan lanjutan,
+dicatat di sini cuma supaya tidak ada yang mengira ini masih terbuka.
 
 ## Yang Sengaja TIDAK Dikerjakan (di luar scope awal)
 
@@ -60,17 +67,26 @@ permintaan awal user:
 Kalau suatu saat user mau lanjut lebih jauh dari plan awal, beberapa ide
 yang masuk akal secara arsitektur (karena fondasinya sudah cocok):
 
-- **Laporan penjualan** — data `orders`/`order_items` historis (status
-  `paid`) sudah cukup untuk bikin laporan harian/mingguan, tinggal
-  ditambah halaman admin baru, tidak perlu ubah skema.
-- **Dashboard live update** — saat ini admin harus klik "Muat Ulang"
-  manual untuk lihat meja baru aktif. Bisa ditingkatkan pakai polling
-  interval sederhana atau Laravel Echo/WebSocket kalau mau real-time.
-- **Cetak struk** — halaman `admin/order-detail.blade.php` sudah punya
-  semua data yang dibutuhkan (rincian item, total), tinggal tambah CSS
-  print-friendly atau generate PDF.
+- **Dashboard live update — sudah ditandai "Phase 10" di kode** (komentar
+  di `Order::$last_item_added_at`, kolom yang sudah diisi tiap kali
+  keranjang di-submit tapi belum dibaca siapa pun). Saat ini admin harus
+  klik "Muat Ulang" manual untuk lihat meja baru aktif. Bisa ditingkatkan
+  pakai polling interval sederhana (`config('kafeign.dashboard.poll_seconds')`
+  — sudah disiapkan sejak Phase 6, belum dipakai) atau Laravel Echo/
+  WebSocket kalau mau benar-benar real-time.
+- **Laporan penjualan** — sekarang lebih mudah dari sebelumnya: Phase 9
+  menambah `orders.business_date`, `payment_method`, dan `total_frozen`,
+  jadi laporan harian/mingguan per metode bayar tinggal `GROUP BY`,
+  tidak perlu ubah skema atau hitung ulang apa pun. Halaman Riwayat
+  (`/admin/orders`) sudah ada tapi sengaja tanpa agregasi — ini beda hal.
 - **Multi-admin dengan role berbeda** — saat ini cuma 1 akun admin generik.
   Kalau perlu bedakan kasir vs pemilik, perlu tambah kolom role ke `users`.
 - **Riwayat pesanan per meja untuk pelanggan** — pelanggan saat ini cuma
   lihat tab yang sedang berjalan, tidak ada riwayat kunjungan sebelumnya
   (memang tidak ada konsep akun pelanggan sama sekali, sesuai desain awal).
+  Beda dari halaman Riwayat Phase 9, yang untuk admin/kasir, bukan
+  pelanggan.
+- **Ukuran kertas struk untuk printer thermal** — halaman
+  `admin/receipt.blade.php` (Phase 9) memakai lebar standar browser-print;
+  belum ada CSS `@page` khusus 58mm/80mm karena belum diketahui printer
+  apa yang akan dipakai kafe.

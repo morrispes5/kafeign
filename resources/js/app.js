@@ -218,6 +218,56 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- Admin: payment method / cash-received / kembalian preview -------
+    // Guarded on data-payment-method-group so this is a no-op on every
+    // page except order-detail.blade.php while an order is still ongoing.
+    // Pure UX: the real cash >= total check happens server-side in
+    // ClearOrderRequest, this only saves the cashier a rejected submit.
+    const paymentGroup = document.querySelector('[data-payment-method-group]');
+    if (paymentGroup) {
+        const cashFields = document.querySelector('[data-cash-fields]');
+        const cashInput = document.querySelector('[data-cash-received-input]');
+        const changePreview = document.querySelector('[data-change-preview]');
+        const changeAmount = document.querySelector('[data-change-preview-amount]');
+        const orderTotal = Number(cashInput?.dataset.orderTotal ?? 0);
+
+        const formatRupiah = (value) => (value < 0 ? '-Rp ' : 'Rp ') + Math.abs(value).toLocaleString('id-ID');
+
+        const updateCashVisibility = () => {
+            const requiresCash = paymentGroup.querySelector('input:checked')?.dataset.requiresCash === '1';
+            cashFields?.classList.toggle('hidden', !requiresCash);
+            if (!requiresCash) {
+                changePreview?.classList.add('hidden');
+            }
+        };
+
+        const updateChangePreview = () => {
+            if (!cashInput?.value) {
+                changePreview?.classList.add('hidden');
+
+                return;
+            }
+
+            const change = Number(cashInput.value) - orderTotal;
+            changePreview?.classList.remove('hidden');
+
+            if (changeAmount) {
+                changeAmount.textContent = formatRupiah(change);
+                changeAmount.classList.toggle('text-red-600', change < 0);
+                changeAmount.classList.toggle('dark:text-red-400', change < 0);
+            }
+        };
+
+        paymentGroup.addEventListener('change', () => {
+            updateCashVisibility();
+            updateChangePreview();
+        });
+        cashInput?.addEventListener('input', updateChangePreview);
+
+        updateCashVisibility();
+        updateChangePreview();
+    }
+
     // --- Cart quantity steppers ------------------------------------------
     // Reaching 0 removes the line, so the minus button needs no separate
     // delete affordance. The page reloads on any change that alters the set

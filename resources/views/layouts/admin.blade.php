@@ -42,6 +42,9 @@
                     <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
                         Dashboard
                     </a>
+                    <a href="{{ route('admin.orders.history') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
+                        Riwayat
+                    </a>
                     <a href="{{ route('admin.menu-items.index') }}" class="rounded-lg px-3 py-2 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
                         Menu
                     </a>

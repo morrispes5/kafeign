@@ -55,6 +55,17 @@ dokumen lain ([FITUR.md](docs/FITUR.md) = fitur yang sudah jalan,
   dengan `decrement` bersyarat satu statement. Aturannya: stok dikurangi
   sekali saat submit, dikembalikan hanya saat baris dibatalkan, **tidak
   pernah** disentuh saat pembayaran.
+- **Pembayaran & struk (Phase 9)**: `orders.total_frozen` / `payment_method`
+  / `cash_received` / `receipt_number` / `business_date` diisi **sekali**,
+  hanya di `Admin\OrderController::clear()`, lewat `update()` level
+  query-builder (bukan `$order->update()`) — atomik dan sengaja melewati
+  `$fillable`. `Order::total` memilih `total_frozen` kalau sudah lunas,
+  jatuh balik ke jumlah `order_items` untuk yang belum. Nomor struk
+  (`App\Services\ReceiptSequencer`) wajib satu pernyataan SQL
+  (`INSERT ... ON CONFLICT ... RETURNING`) — jangan disederhanakan jadi
+  `increment()` lalu baca terpisah, itu bisa membuat dua pembayaran
+  bersamaan kebagian nomor struk yang sama. `cancel()` **tidak pernah**
+  menyentuh kelima kolom itu.
 - Kredensial admin ada di `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) dan
   dibuat ulang oleh `AdminUserSeeder` tiap `migrate:fresh --seed`.
   **Akun yang dibuat di luar `.env` akan hilang saat DB di-reset** —
@@ -78,9 +89,13 @@ Detail lengkap ada di [docs/CARA-MENJALANKAN.md](docs/CARA-MENJALANKAN.md).
 
 ## Cara Kerja dengan User Ini
 
-- User memandu pengerjaan **bertahap per fase** (Phase 0–5, lihat
-  [docs/FITUR.md](docs/FITUR.md)), diminta konfirmasi sebelum lanjut ke
-  fase berikutnya — jangan loncat kerjakan fase yang belum diminta.
+- User memandu pengerjaan **bertahap per fase** (Phase 0–9 sudah selesai,
+  lihat [docs/FITUR.md](docs/FITUR.md)), diminta konfirmasi sebelum
+  lanjut ke fase berikutnya — jangan loncat kerjakan fase yang belum
+  diminta. Kalau nomor fase berikutnya tidak eksplisit diminta/didefinisikan
+  di mana pun, tanya dulu ke user mau fase itu isinya apa (lihat
+  [docs/ROADMAP.md](docs/ROADMAP.md) untuk daftar ide yang belum
+  dikerjakan) — jangan pilih sepihak.
 - User masih belajar Laravel/PHP — jelaskan keputusan teknis dengan
   bahasa yang jelas, jangan asumsikan familiar dengan istilah framework.
 - Komunikasi dalam Bahasa Indonesia santai.

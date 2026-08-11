@@ -37,9 +37,19 @@ pertama dipesan sampai kasir membersihkannya.
 - `status` — string di kolom, di-cast ke enum `App\Enums\OrderStatus`
   (`Ongoing` / `Paid` / `Cancelled`) di level model
 - `opened_at`, `closed_at` (nullable)
-- **Total TIDAK disimpan** sebagai kolom — dihitung on-the-fly lewat
-  accessor `Order::total` (`sum` dari `order_items.subtotal`), supaya
-  tidak mungkin "nyasar" beda dari jumlah item sebenarnya.
+- **Total masih TIDAK disimpan sebagai sumber kebenaran** — accessor
+  `Order::total` tetap `sum` dari `order_items.subtotal` untuk order yang
+  belum/tidak pernah lunas, supaya tidak mungkin "nyasar" beda dari
+  jumlah item sebenarnya. Sejak Phase 9, order yang **sudah** lunas punya
+  `total_frozen` terisi (lihat di bawah) dan `Order::total` memilih nilai
+  itu — detail lengkap di bagian "Pembayaran & Struk" lebih bawah di
+  dokumen ini.
+- **Lima kolom pembayaran (Phase 9)**, semuanya nullable dan selamanya
+  NULL untuk order `ongoing`/`cancelled`: `payment_method`,
+  `cash_received`, `total_frozen`, `receipt_number` (unique),
+  `business_date`. Tidak ada di `Order::$fillable` — satu-satunya
+  penulisnya adalah `update()` level query-builder di
+  `Admin\OrderController::clear()`.
 
 **Invariant inti** — satu meja hanya boleh punya satu order `ongoing`:
 ditegakkan lewat **partial unique index** di migration `orders`
@@ -159,9 +169,10 @@ untuk gambar yang toh ditampilkan kecil.
 | `Category` | `ICONS` constant (daftar ikon valid), scope `orderedBySort()` |
 | `MenuItem` | scope `available()`, accessor `image_url` (null kalau belum ada foto, root-relative `/storage/...` — lihat catatan gambar di bawah) |
 | `Table` | `getRouteKeyName()` = `number` (jadi URL pakai nomor meja, bukan id), method `activeOrder()` |
-| `Order` | enum-cast `status`, accessor `total` (dihitung, bukan disimpan), `findOrCreateOngoingForTable()`, `addItem()` (merge-by-quantity) |
+| `Order` | enum-cast `status` & `payment_method`, accessor `total` (prefer `total_frozen`, jatuh balik ke hitung live), accessor `changeDue`, `findOrCreateOngoingForTable()`, `addItem()` (merge-by-quantity), scope `closed()` |
 | `OrderItem` | auto-hitung `subtotal` lewat model event |
 | `User` | bawaan Laravel, dipakai untuk admin (bukan tabel terpisah) |
+| `ReceiptCounter` | read-only by convention — `App\Services\ReceiptSequencer` satu-satunya penulis sungguhan, lewat raw upsert |
 
 ## Routes (`routes/web.php`)
 
@@ -194,8 +205,10 @@ Satu-satunya jalan item masuk ke tab sekarang lewat `cart/submit`.
 | GET/POST | `/admin/login` | Login (rate limit 5x/60 detik, lihat `Admin\LoginRequest`) |
 | POST | `/admin/logout` | Logout |
 | GET | `/admin/dashboard` | Daftar meja aktif |
+| GET | `/admin/orders` | Riwayat — daftar order lunas/dibatalkan (Phase 9) |
 | GET | `/admin/orders/{order}` | Detail + aksi bersihkan/batalkan |
-| POST | `/admin/orders/{order}/clear` | Tandai lunas |
+| GET | `/admin/orders/{order}/receipt` | Struk cetak, hanya order lunas (Phase 9) |
+| POST | `/admin/orders/{order}/clear` | Pilih metode bayar (+ uang diterima kalau tunai) → tandai lunas, bekukan total, cetak nomor struk |
 | POST | `/admin/orders/{order}/cancel` | Batalkan |
 | resource | `/admin/menu-items` | CRUD item menu (`except('show')`) |
 | PATCH | `/admin/menu-items/{menuItem}/toggle-availability` | Aktif/nonaktif cepat |
@@ -305,12 +318,89 @@ dapat daftar lengkap yang perlu diperbaiki sekaligus), lalu satu
 `DB::transaction` — **semua-atau-tidak sama sekali**. Di dalam loop ada
 titik sambung eksplisit untuk pengecekan stok Phase 8.
 
+## Pembayaran & Struk (`App\Enums\PaymentMethod`, `App\Support\BusinessDate`, `App\Services\ReceiptSequencer`) — Phase 9
+
+`Admin\OrderController::clear()` sekarang minta metode bayar, membekukan
+total, dan mencetak nomor struk — semuanya dalam satu `DB::transaction`,
+dan semuanya **atomik** dengan pola yang sama seperti Stok di atas: satu
+pernyataan SQL bersyarat, dicek lewat jumlah baris terpengaruh, bukan
+`lockForUpdate()` (tetap tidak berfungsi di SQLite).
+
+### Hari bisnis (`App\Support\BusinessDate`)
+
+`config('kafeign.business_day.start_hour')` (default 4) menentukan hari
+mana yang "punya" sebuah pembayaran. Hari D berjalan dari `[D 04:00, D+1
+04:00)`, jadi pelunasan jam 00:10 masuk ke hari sebelumnya — cara pemilik
+kafe menghitung "penjualan tadi malam". `BusinessDate::forMoment()`
+dipanggil **sekali**, tepat di detik `clear()` berhasil, dan hasilnya
+disimpan permanen ke `orders.business_date` — mengubah config ini nanti
+tidak pernah mengubah hari milik pembayaran yang sudah tercatat.
+
+### Nomor struk (`App\Services\ReceiptSequencer`)
+
+Format `{business_date:Ymd}-{urutan:04d}`, contoh `20260812-0001`, reset
+ke `0001` tiap kali `business_date` berganti. Tabel baru
+`receipt_counters` (satu baris per hari bisnis) menyimpan angka
+terakhirnya. Satu-satunya penulisnya, `ReceiptSequencer::next()`, memakai
+**satu pernyataan SQL** yang sekaligus menambah dan membaca hasilnya:
+
+```sql
+insert into receipt_counters (business_date, last_number, created_at, updated_at)
+values (?, 1, ?, ?)
+on conflict (business_date) do update set
+    last_number = last_number + 1,
+    updated_at = excluded.updated_at
+returning last_number
+```
+
+Kenapa bukan `increment()` biasa lalu `->value('last_number')` terpisah:
+dua pembayaran nyaris bersamaan bisa sama-sama meng-increment lalu
+sama-sama membaca angka yang sama (angka hasil increment yang *lain*,
+bukan increment miliknya sendiri) — dua order berakhir dengan nomor struk
+kembar, yang baru ketahuan belakangan sebagai `QueryException` aneh di
+`orders.receipt_number`. `RETURNING` menutup celah itu karena nilai yang
+dikembalikan dijamin milik pernyataan itu sendiri. Butuh SQLite ≥ 3.35;
+sudah dicek di environment ini (3.49.2) — cek ulang `sqlite_version()`
+kalau pindah ke hosting lain.
+
+`ReceiptSequencer::next()` **harus** dipanggil di dalam
+`DB::transaction()` yang sama dengan update status order. Kalau baris
+kalah balapan (lihat di bawah), transaksinya rollback dan nomor yang
+sudah sempat di-mint ikut batal — tidak pernah ada nomor struk yang
+"terbakar" untuk pembayaran yang sebenarnya gagal.
+
+### `clear()` dan `cancel()` atomik
+
+```php
+$affected = Order::query()
+    ->whereKey($order->id)
+    ->where('status', OrderStatus::Ongoing->value)
+    ->update([...]);   // 0 baris terpengaruh = kalah balapan
+```
+
+Dua klik cepat di tombol yang sama, atau dua tab admin di order yang
+sama, tidak lagi bisa memproses satu pembayaran dua kali atau membatalkan
+dua kali. Query-builder `update()` dipakai, bukan `$order->update()` —
+selain memberi jumlah baris terpengaruh, ini juga sengaja melewati
+`$fillable` milik Eloquent (lihat catatan di `Order::$fillable`).
+`cancel()` memindahkan `StockLedger::restoreOrder()` ke dalam transaksi
+yang sama, supaya submit ganda tidak mengembalikan stok dua kali.
+
+### Aturan pembayaran, sekali saja
+
+> Total dibekukan **sekali**, tepat saat status pindah ke `paid`. Nomor
+> struk dan hari bisnis ikut dibekukan di detik yang sama. Order yang
+> dibatalkan **tidak pernah** menyentuh kolom pembayaran sama sekali.
+
 ## Views (`resources/views/`)
 
 - `layouts/app.blade.php` — shell pelanggan (header, dark mode, sidebar)
-- `layouts/admin.blade.php` — shell admin (nav Dashboard/Menu/Kategori/Keluar)
+- `layouts/admin.blade.php` — shell admin (nav Dashboard/Riwayat/Menu/Kategori/Keluar)
 - `table/` — entry, menu, order (pelanggan)
-- `admin/` — login, dashboard, order-detail, menu-items/*, categories/*
+- `admin/` — login, dashboard, order-detail, order-history, receipt,
+  menu-items/*, categories/*. `receipt.blade.php` sengaja **tidak**
+  `@extends('layouts.admin')` — halaman struk berdiri sendiri supaya nav
+  admin tidak ikut tercetak.
 - `components/` — `icon`, `icon-picker`, `badge-pill`, `menu-item-card`,
   `order-summary` (Blade components, dipakai lewat `<x-nama-file>`)
 
@@ -333,3 +423,8 @@ titik sambung eksplisit untuk pengecekan stok Phase 8.
 3. `database/seeders/MenuItemSeeder.php` — semua 69 item menu asli
 4. `app/Models/Category.php` — `ICONS` constant (harus sinkron dengan
    `resources/views/components/icon.blade.php`)
+5. `app/Http/Controllers/Admin/OrderController.php` — `clear()`
+   (pembekuan total + mint nomor struk + transisi status, semuanya harus
+   tetap satu transaksi atomik) dan `App\Services\ReceiptSequencer` (satu
+   pernyataan `RETURNING`, jangan disederhanakan jadi increment + read
+   terpisah — lihat penjelasan race condition di bagian Pembayaran & Struk)

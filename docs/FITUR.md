@@ -326,3 +326,88 @@ Ditemukan langsung oleh user setelah pakai fitur upload foto di Phase 4
 Dites end-to-end: upload foto 3,44MB/4000×3000px (simulasi foto HP asli)
 lewat form sungguhan → tersimpan 219KB/1000×750px → tampil normal di
 menu pelanggan pada ukuran 96×96px.
+
+---
+
+## Phase 9 — Pembayaran & Struk ✅
+
+Kasir sekarang mencatat **metode pembayaran** saat membersihkan meja,
+sistem menghitung **kembalian** otomatis untuk tunai, tiap pembayaran
+dapat **nomor struk berurutan**, dan totalnya **dibekukan** persis di
+detik pelunasan — bukan dihitung ulang selamanya dari `order_items`.
+
+- **Empat metode pembayaran**: Tunai, QRIS, Kartu, Transfer
+  (`App\Enums\PaymentMethod`). Hanya Tunai yang butuh field "Uang
+  Diterima" — tiga lainnya dianggap lunas pas, tidak ada kembalian.
+  Preview kembalian tampil langsung di form (JS murni kosmetik); validasi
+  sungguhan (`uang diterima >= total`) selalu di server, dicek fresh dari
+  `order_items`, bukan dari angka yang dikirim form.
+- **Total dibekukan saat lunas**: kolom baru `orders.total_frozen`, diisi
+  sekali di detik `clear()` berhasil. `Order::total` sekarang **memilih**
+  `total_frozen` kalau ada, dan **jatuh balik** ke penjumlahan langsung
+  `order_items` untuk order yang belum/tidak pernah lunas — perilaku lama
+  sama sekali tidak berubah untuk order `ongoing`/`cancelled`, dan order
+  lunas dari sebelum migration ini (`total_frozen` NULL) tetap menghitung
+  dengan cara lama, tidak pernah error.
+- **Nomor struk berurutan per hari-bisnis**: format `YYYYMMDD-NNNN`
+  (contoh `20260812-0001`), reset ke `0001` tiap kali hari-bisnis
+  (potongan jam 04:00, `config('kafeign.business_day.start_hour')` —
+  sudah disiapkan sejak Phase 6, baru sekarang benar-benar dipakai)
+  berganti. Ditulis lewat satu tabel kecil baru `receipt_counters` (1
+  baris per hari), dan satu-satunya penulisnya, `App\Services\ReceiptSequencer`,
+  memakai **satu pernyataan SQL atomik** (`INSERT ... ON CONFLICT ... DO
+  UPDATE ... RETURNING`) — bukan "increment lalu baca lagi", karena pola
+  itu masih bisa membuat dua pembayaran bersamaan sama-sama membaca angka
+  milik pembayaran lain dan berakhir dengan nomor struk kembar. Butuh
+  SQLite ≥ 3.35 untuk `RETURNING` — sudah dicek, environment ini pakai
+  3.49.2.
+- **`clear()` dan `cancel()` sekarang atomik**, memakai idiom yang sama
+  dengan `StockLedger`: `UPDATE ... WHERE status = 'ongoing'` sebagai
+  satu pernyataan, dicek lewat jumlah baris yang kena. Dua klik cepat atau
+  dua tab admin di order yang sama tidak lagi bisa memproses pembayaran
+  dua kali atau membakar dua nomor struk untuk satu pembayaran — yang
+  kalah balapan dapat pesan "Pesanan ini sudah tidak aktif," sama seperti
+  pesan untuk kasus non-balapan. Semuanya di dalam satu `DB::transaction()`,
+  jadi kalau baris kalah balapan, nomor struk yang sudah sempat di-mint
+  ikut batal (rollback) — tidak pernah terbakar percuma. `cancel()` ikut
+  diperketat dengan pola yang sama sekalian (kecil, di file yang sama) —
+  sebelumnya baca-lalu-tulis biasa, yang berarti submit ganda bisa
+  mengembalikan stok dua kali.
+- **Lima kolom baru di `orders`** (`payment_method`, `cash_received`,
+  `total_frozen`, `receipt_number`, `business_date`) — semuanya nullable
+  dan **selamanya NULL** untuk order `ongoing`/`cancelled`. Sengaja tidak
+  masuk `$fillable`: satu-satunya penulis adalah `update()` level
+  query-builder di dalam `clear()`, bukan lewat `$order->update()` biasa —
+  tidak boleh ada jalan untuk mengetik ulang total/nomor struk lewat
+  mass-assignment.
+- **Struk bisa dicetak** (`/admin/orders/{order}/receipt`, hanya untuk
+  order lunas) — halaman berdiri sendiri (bukan bagian dari
+  `layouts.admin`, supaya nav admin tidak ikut tercetak), mode terang
+  saja, tombol "Cetak Struk" cukup `window.print()`. Belum ada ukuran
+  kertas khusus printer thermal — lihat [ROADMAP.md](ROADMAP.md).
+- **Halaman Riwayat baru** (`/admin/orders`, nav "Riwayat") — daftar
+  semua order yang sudah lunas/dibatalkan. Sebelumnya begitu meja keluar
+  dari dashboard, tidak ada jalan sama sekali untuk menemukannya lagi
+  (dashboard cuma daftar order `ongoing`). Sengaja minim: daftar + link,
+  tanpa jumlah/filter tanggal — itu "Laporan Penjualan" yang memang belum
+  diminta (lihat ROADMAP.md).
+
+*Diverifikasi*: 11 skenario dibuktikan lewat test PHPUnit sementara
+(dijalankan sekali lewat `php artisan test` terhadap DB `:memory:` khusus
+testing, filenya dihapus lagi setelahnya — proyek ini tetap tidak
+menyimpan automated test permanen, konsisten dengan fase-fase sebelumnya),
+ditambah alur asli lewat browser sungguhan (pesan dari menu meja 12 →
+keranjang → kirim ke kasir, tersimpan sebagai order Rp76.000): tunai
+kurang → ditolak, tidak ada state berubah, `receipt_counters` tidak
+bertambah; tunai cukup/lebih → berhasil, kembalian benar, redirect ke
+struk; non-tunai → field tunai tetap NULL; dua order dibayar hari yang
+sama → nomor struk berurutan (`-0001`, `-0002`); simulasi hari bisnis
+berikutnya → nomor reset ke `-0001`; submit ganda ke order yang sama →
+percobaan kedua ditolak bersih, nomor struk **tidak** ikut bertambah;
+batalkan dengan/tanpa centang "kembalikan stok" → stok bergerak sesuai
+checkbox, lima kolom pembayaran tetap NULL di kedua kasus; order lunas
+yang disimulasikan "dari sebelum migration ini" (`total_frozen` NULL)
+tetap menghitung total dengan benar lewat jalur lama; `/receipt` untuk
+order belum lunas redirect dengan pesan, bukan error; tulis manual nomor
+struk kembar lewat query builder mentah → ditolak `QueryException`
+(jaminan di level database, bukan cuma di kode PHP).
