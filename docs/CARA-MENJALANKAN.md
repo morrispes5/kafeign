@@ -3,8 +3,8 @@
 ## Persiapan (sekali saja)
 
 Ekstensi PHP `pdo_sqlite`, `sqlite3`, `fileinfo`, dan `gd` harus aktif di
-`php.ini` (`gd` dipakai untuk resize foto menu — lihat
-[ARSITEKTUR.md](ARSITEKTUR.md#foto-menu-appsupportmenuitemimagephp`)).
+`php.ini` (`gd` dipakai untuk resize foto menu — lihat bagian "Foto Menu"
+di [ARSITEKTUR.md](ARSITEKTUR.md)).
 Kalau environment ini yang dipakai (PHP 8.4 di `C:\php-8.4.13`), semua
 sudah diaktifkan — cek dengan:
 

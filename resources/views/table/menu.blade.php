@@ -49,5 +49,5 @@
         @endforeach
     </div>
 
-    <x-order-summary :table="$table" :order="$order" />
+    <x-order-summary :table="$table" :order="$order" :cart-count="$cartCount" :cart-total="$cartTotal" />
 @endsection

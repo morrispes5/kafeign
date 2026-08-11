@@ -61,7 +61,13 @@
         'chevron-right' => '<path d="M9 5l7 7-7 7" />',
         'chevron-down' => '<path d="M5 9l7 7 7-7" />',
         'plus' => '<path d="M12 5v14M5 12h14" />',
+        'minus' => '<path d="M5 12h14" />',
         'check' => '<path d="M5 13l4 4L19 7" />',
+        'cart' => '
+            <path d="M3 4h2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h7.6a1.5 1.5 0 0 0 1.5-1.2L20 7H6" />
+            <circle cx="9.5" cy="20" r="1.2" />
+            <circle cx="17" cy="20" r="1.2" />
+        ',
 
         default => '',
     };

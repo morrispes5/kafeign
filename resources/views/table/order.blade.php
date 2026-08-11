@@ -8,6 +8,19 @@
         <h1 class="font-display text-3xl font-semibold text-kafeign-maroon-dark dark:text-kafeign-amber">Pesanan Kamu</h1>
     </div>
 
+    {{-- An unsent cart is invisible to the cafe, so a customer looking at
+         their tab must not conclude this is everything they ordered. --}}
+    @if ($cartCount > 0)
+        <a href="{{ route('table.cart', $table) }}"
+            class="mb-5 flex items-center justify-between gap-3 rounded-lg border-2 border-dashed border-kafeign-amber bg-kafeign-amber-soft px-4 py-3 text-sm text-kafeign-maroon-dark transition hover:brightness-95 dark:border-kafeign-amber/60 dark:bg-kafeign-amber/10 dark:text-kafeign-amber">
+            <span>
+                <strong>{{ $cartCount }} item</strong> di keranjang belum dikirim ke kasir
+                (Rp {{ number_format($cartTotal, 0, ',', '.') }}).
+            </span>
+            <x-icon name="chevron-right" class="h-4 w-4 shrink-0" />
+        </a>
+    @endif
+
     @if (! $order || $order->orderItems->isEmpty())
         <div class="rounded-xl border border-dashed border-kafeign-wood-soft p-8 text-center dark:border-kafeign-ink-border">
             <p class="text-sm text-kafeign-brown/70 dark:text-kafeign-cream-soft/70">
@@ -19,6 +32,9 @@
             </a>
         </div>
     @else
+        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-kafeign-wood dark:text-kafeign-wood-soft">
+            Sudah masuk ke tagihan
+        </p>
         <div class="rounded-xl border border-kafeign-wood-soft/50 bg-kafeign-cream-soft/40 px-4 dark:border-kafeign-ink-border/60 dark:bg-kafeign-ink-soft/30">
             @foreach ($order->orderItems as $item)
                 <div class="flex items-center justify-between gap-4 border-b border-kafeign-wood-soft/40 py-3 last:border-b-0 dark:border-kafeign-ink-border/60">

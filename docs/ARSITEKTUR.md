@@ -2,8 +2,9 @@
 
 ## Skema Database
 
-SQLite, 6 tabel inti (di luar tabel bawaan Laravel seperti `users`,
-`cache`, `jobs`, `sessions`).
+SQLite. Tabel milik project ini: `categories`, `menu_items`, `tables`,
+`orders`, `order_items` — di luar tabel bawaan Laravel (`users`, `cache`,
+`jobs`, `sessions`). `users` dipakai apa adanya untuk akun admin.
 
 ```
 categories (1) ──< menu_items (M)
@@ -165,19 +166,32 @@ untuk gambar yang toh ditampilkan kecil.
 ## Routes (`routes/web.php`)
 
 ### Sisi Pelanggan (tanpa login)
-| Method | URL | Fungsi |
-|---|---|---|
-| GET | `/` | Landing page, dropdown pilih meja |
-| POST | `/table` | Submit dropdown → redirect ke `/table/{nomor}` |
-| GET | `/table/{nomor}` | Cek order ongoing → redirect ke menu atau ke pesanan |
-| GET | `/table/{nomor}/menu` | Browse menu |
-| GET | `/table/{nomor}/order` | Lihat tab berjalan |
-| POST | `/table/{nomor}/order-items` | AJAX tambah item ke tab |
+
+**Seluruh grup `/table/{nomor}` memakai middleware `EnsureTableSession`**;
+yang menulis (POST/PATCH/DELETE) juga memakai `throttle:20,1`.
+
+| Method | URL | Fungsi | Middleware tambahan |
+|---|---|---|---|
+| GET | `/` | Landing page, dropdown pilih meja | — |
+| POST | `/table` | Submit dropdown → redirect ke `/table/{nomor}` | — |
+| GET | `/table/{nomor}` | Cek order ongoing → redirect ke menu atau ke pesanan | `EnsureTableSession` |
+| GET | `/table/{nomor}/menu` | Browse menu | `EnsureTableSession` |
+| GET | `/table/{nomor}/cart` | Lihat & ubah keranjang (belum dikirim) | `EnsureTableSession` |
+| GET | `/table/{nomor}/order` | Lihat tab berjalan (sudah di kasir) | `EnsureTableSession` |
+| POST | `/table/{nomor}/cart/items` | AJAX tambah item ke **keranjang** | + `throttle:20,1` |
+| PATCH | `/table/{nomor}/cart/items` | AJAX ubah jumlah (0 = hapus baris) | + `throttle:20,1` |
+| DELETE | `/table/{nomor}/cart/items/{menuItem}` | Hapus baris keranjang | + `throttle:20,1` |
+| POST | `/table/{nomor}/cart/submit` | **Kirim keranjang → jadi order nyata** | + `throttle:20,1` |
+| DELETE | `/table/{nomor}/order-items/{orderItem}` | Hapus item dari tab yang sudah dikirim | + `throttle:20,1` |
+
+Catatan: `POST /table/{nomor}/order-items` **sudah dihapus** (Phase 7).
+Satu-satunya jalan item masuk ke tab sekarang lewat `cart/submit`.
 
 ### Sisi Admin (butuh login, middleware `auth`)
 | Method | URL | Fungsi |
 |---|---|---|
-| GET/POST | `/admin/login` | Login |
+| GET | `/admin` | Redirect: ke dashboard kalau sudah login, ke login kalau belum |
+| GET/POST | `/admin/login` | Login (rate limit 5x/60 detik, lihat `Admin\LoginRequest`) |
 | POST | `/admin/logout` | Logout |
 | GET | `/admin/dashboard` | Daftar meja aktif |
 | GET | `/admin/orders/{order}` | Detail + aksi bersihkan/batalkan |
@@ -191,6 +205,46 @@ Catatan teknis: route resource `menu-items` di-override parameter
 name-nya jadi `menuItem` (bukan default `menu_item`) lewat
 `->parameters(['menu-items' => 'menuItem'])`, supaya cocok dengan nama
 argumen di controller — kalau lupa, route model binding diam-diam gagal.
+
+## Keranjang (`App\Support\Cart`) — Phase 7
+
+Tap "+" tidak lagi langsung membuat order. Item masuk **keranjang** dulu,
+yang privat untuk browser itu dan **tidak terlihat kasir**, sampai
+pelanggan menekan "Kirim Pesanan".
+
+```
+session('kafeign.cart') = [ 7 => [12 => 2, 45 => 1] ]
+                            ^nomor meja  ^menu_item_id => qty
+```
+
+**Isinya hanya id dan jumlah — tidak pernah nama atau harga.** Keduanya
+dilihat ulang dari `menu_items` saat render dan lagi saat submit. Ini
+mematikan dua kelas masalah sekaligus: klien tidak bisa menentukan
+harganya sendiri, dan keranjang tidak mungkin menampilkan harga basi.
+
+Kenapa session, bukan tabel `draft`: beberapa orang satu meja pesan dari
+HP masing-masing, jadi tiap orang butuh keranjang privat tapi semuanya
+harus mendarat di **satu order yang sama** untuk meja itu. Session
+bersifat per-browser, jadi itu didapat gratis. Status `draft` justru akan
+butuh kolom session-id, butuh pembersihan draft terlantar, dan membuat
+setiap `Order::query()` di masa depan jadi ranjau — satu filter status
+terlupa, draft bocor ke laporan.
+
+Dikunci per nomor meja karena `EnsureTableSession` sengaja membolehkan
+satu session memegang beberapa meja; tanpa kunci itu, rombongan yang
+pindah meja akan menyeret keranjangnya.
+
+**Trade-off yang diterima sadar:** keranjang ikut mati bersama session
+cookie, dan **staf tidak bisa melihatnya**. Keranjang yang tidak pernah
+dikirim tidak terlihat kafe sama sekali — itu harga langsung dari
+perlindungan salah-tap. Mitigasinya murni UI (bar amber putus-putus,
+peringatan di halaman keranjang, notice di halaman pesanan).
+
+`App\Services\CartSubmitter::submit()` mengubahnya jadi order nyata:
+memvalidasi semua baris **sebelum** membuka transaksi (supaya pelanggan
+dapat daftar lengkap yang perlu diperbaiki sekaligus), lalu satu
+`DB::transaction` — **semua-atau-tidak sama sekali**. Di dalam loop ada
+titik sambung eksplisit untuk pengecekan stok Phase 8.
 
 ## Views (`resources/views/`)
 

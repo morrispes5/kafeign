@@ -30,10 +30,12 @@
             Rp {{ number_format($item->price, 0, ',', '.') }}
         </span>
 
+        {{-- Adds to the private session cart, NOT to the table's tab.
+             Nothing here reaches the cashier until "Kirim Pesanan". --}}
         <button type="button" data-add-item
-            data-order-items-url="{{ route('table.order-items.store', $table) }}"
+            data-order-items-url="{{ route('table.cart.items.store', $table) }}"
             data-menu-item-id="{{ $item->id }}"
-            aria-label="Tambah {{ $item->name }}"
+            aria-label="Tambah {{ $item->name }} ke keranjang"
             class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-kafeign-wood-soft text-kafeign-maroon-dark transition hover:border-kafeign-maroon hover:bg-kafeign-maroon hover:text-kafeign-cream disabled:cursor-wait disabled:opacity-60 dark:border-kafeign-ink-border dark:text-kafeign-amber dark:hover:bg-kafeign-amber dark:hover:text-kafeign-ink">
             {{-- Three pre-rendered states swapped by app.js, so a click
                  never has to wait for the fetch before showing feedback. --}}

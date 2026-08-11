@@ -40,6 +40,7 @@ class Order extends Model
             'status' => OrderStatus::class,
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
+            'last_item_added_at' => 'datetime',
         ];
     }
 

@@ -202,9 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 quantity: 1,
             });
 
-            if (ok && data.order) {
-                if (summaryCount) summaryCount.textContent = data.order.item_count;
-                if (summaryTotal) summaryTotal.textContent = data.order.total_formatted;
+            if (ok && data.cart) {
+                if (summaryCount) summaryCount.textContent = data.cart.item_count;
+                if (summaryTotal) summaryTotal.textContent = data.cart.total_formatted;
                 summaryBar?.classList.remove('translate-y-full');
                 summaryBar?.classList.add('translate-y-0');
 
@@ -212,6 +212,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => showState('idle'), 700);
             } else {
                 showState('idle');
+            }
+
+            button.disabled = false;
+        });
+    });
+
+    // --- Cart quantity steppers ------------------------------------------
+    // Reaching 0 removes the line, so the minus button needs no separate
+    // delete affordance. The page reloads on any change that alters the set
+    // of lines, because re-deriving the whole cart in JS would duplicate the
+    // Blade rendering — the exact duplication the server-side cart exists to
+    // avoid.
+    document.querySelectorAll('[data-cart-step]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            if (button.disabled) {
+                return;
+            }
+
+            const quantity = Number(button.dataset.quantity);
+            button.disabled = true;
+
+            const { ok } = await postJson(
+                button.dataset.url,
+                {
+                    menu_item_id: button.dataset.menuItemId,
+                    quantity,
+                },
+                { method: 'PATCH', silentSuccess: true },
+            );
+
+            if (ok) {
+                window.location.reload();
+
+                return;
             }
 
             button.disabled = false;

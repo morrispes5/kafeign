@@ -34,6 +34,19 @@ dokumen lain ([FITUR.md](docs/FITUR.md) = fitur yang sudah jalan,
   berlapis (`EnsureTableSession` + throttle + batas jumlah). Batas
   perlindungannya dijelaskan jujur di `docs/ARSITEKTUR.md` — baca dulu
   sebelum mengubah apa pun di sekitar situ.
+- **Alur pesan = keranjang dulu, baru dikirim** (Phase 7). Tap "+" hanya
+  mengisi `App\Support\Cart` di session — kasir TIDAK melihat apa pun
+  sampai `POST /table/{n}/cart/submit`. Keranjang menyimpan hanya
+  `menu_item_id => qty`; nama & harga selalu dibaca ulang dari DB. Jangan
+  pernah menaruh harga di session/klien.
+- `bootstrap/app.php` — `shouldRenderJsonWhen` **harus** tetap meng-OR
+  `expectsJson()`. Kalau dihapus, semua `fetch()` pelanggan diam-diam
+  menerima HTML/302 lagi dan seluruh pesan error hilang tanpa jejak.
+- Toast: JS **meng-clone `<template>`** dari `components/toast-host.blade.php`,
+  tidak pernah merakit class di JS — Tailwind v4 akan memurge class yang
+  tidak ada di file sumber, dan toast-nya tampil tanpa gaya di produksi.
+- `lockForUpdate()` **tidak berfungsi di SQLite**. Pengaman balapan di
+  project ini selalu unique index + catch-and-retry, bukan row lock.
 - Kredensial admin ada di `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) dan
   dibuat ulang oleh `AdminUserSeeder` tiap `migrate:fresh --seed`.
   **Akun yang dibuat di luar `.env` akan hilang saat DB di-reset** —

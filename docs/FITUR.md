@@ -10,8 +10,8 @@ tolong perbaiki file ini.
 
 ## Phase 0 — Database & Data Asli ✅
 
-- SQLite di `database/database.sqlite`, 5 migration inti: `categories`,
-  `menu_items`, `tables`, `orders`, `order_items`.
+- SQLite di `database/database.sqlite`, dengan migration inti untuk
+  `categories`, `menu_items`, `tables`, `orders`, `order_items`.
 - **Invariant utama sistem**: satu meja hanya boleh punya **satu order
   berstatus `ongoing`** dalam satu waktu. Ditegakkan di level database
   lewat partial unique index di migration `orders`
@@ -120,6 +120,92 @@ tolong perbaiki file ini.
   punya 3 state (idle → loading [spinner] → sukses [centang] → idle
   lagi setelah ~0.7 detik), bukan cuma disable diam-diam seperti
   sebelumnya. Dites eksplisit ketiga state-nya muncul berurutan.
+
+---
+
+## Phase 6 — Fondasi: server bisa bicara ke pelanggan ✅
+
+Tidak banyak yang terlihat, tapi dua cacat tersembunyi di bawah ini akan
+membuat semua fase setelahnya percuma kalau tidak diperbaiki duluan.
+
+- **Server tidak pernah bisa mengirim pesan error ke pelanggan.**
+  `bootstrap/app.php` memakai
+  `shouldRenderJsonWhen(fn ($r) => $r->is('api/*'))`. Callback itu
+  **menggantikan**, bukan menambah, pengecekan bawaan Laravel — dan
+  aplikasi ini tidak punya route `api/*` sama sekali. Jadi setiap
+  `fetch()` dapat HTML atau 302, tidak pernah JSON: validasi gagal datang
+  sebagai redirect, 403/419/429 sebagai halaman HTML. **Pesan apa pun yang
+  ditulis untuk pelanggan mustahil sampai** — memperbaiki JS saja tidak
+  akan mengubah apa pun. Sekarang `expectsJson()` ikut di-OR.
+- **Konfigurasi SQLite akan gagal justru saat transaksi uang bersamaan.**
+  `transaction_mode` DEFERRED + `busy_timeout` kosong; pola "cek stok lalu
+  kurangi" adalah baca-lalu-tulis, dan penulis kedua langsung dapat
+  "database is locked". Sekarang IMMEDIATE + timeout 5 detik + WAL.
+  Tercatat juga di komentar config: **`lockForUpdate()` tidak berfungsi
+  sama sekali di SQLite** — pengamannya adalah unique index + catch.
+- **Sistem toast** (`components/toast-host.blade.php` + `resources/js/toast.js`):
+  flash server dirender sebagai HTML asli (tetap jalan tanpa JS), dan JS
+  meng-**clone `<template>`** alih-alih merakit markup — ini bukan gaya,
+  tapi keharusan: Tailwind v4 memindai file sumber, jadi class yang
+  dirakit runtime akan terpurge dan toast-nya tampil tanpa gaya di
+  produksi. Pakai `textContent`, bukan `innerHTML`. Tanpa emoji; varian
+  dibedakan warna + kata **Berhasil / Gagal / Perhatian / Info**.
+- **`postJson()` di `app.js`** — satu jalur untuk semua fetch pelanggan,
+  menangani 2xx/422/403/419/429/5xx. Pesan **429 di-hardcode dalam Bahasa
+  Indonesia** karena bawaan Laravel berbahasa Inggris ("Too Many
+  Attempts" — sudah diverifikasi server memang mengirim itu). 403 diberi
+  tombol "Muat Ulang" karena penolakan itu memang pulih dengan reload.
+- **Bug UI nyata**: form admin menulis "maks 2MB" padahal server menerima
+  10MB — penyebab upload foto gagal yang dilaporkan pemilik. Label dan
+  aturan validasi sekarang sama-sama membaca
+  `config('kafeign.menu_photo.max_kb')`.
+
+## Phase 7 — Keranjang (pesanan tidak lagi langsung ke kasir) ✅
+
+Ini perubahan alur terbesar sejak Phase 2, atas permintaan pemilik: satu
+salah tap tidak boleh langsung jadi pesanan sungguhan.
+
+**Alur baru:** tap "+" → masuk **keranjang** (privat, kasir tidak lihat) →
+pelanggan review di `/table/{n}/cart` → tekan **"Kirim Pesanan ke Kasir"**
++ dialog konfirmasi → **baru** jadi order yang terlihat kasir.
+
+- **Keranjang disimpan di session server** (`App\Support\Cart`), isinya
+  **hanya `menu_item_id => quantity`** — tidak pernah nama atau harga.
+  Keduanya dilihat ulang dari database saat render dan saat submit,
+  sehingga klien tidak bisa menentukan harganya sendiri dan keranjang
+  tidak pernah menampilkan harga basi.
+- **Beberapa HP di satu meja masing-masing punya keranjang sendiri**
+  (session bersifat per-browser), tapi semuanya masuk ke **satu tab
+  meja yang sama**. Terverifikasi lewat dua sesi browser terpisah.
+- **Bisa kirim berkali-kali** — gelombang kedua masuk ke tab yang sama,
+  dan item yang sama digabung jadi satu baris (Matcha x3, bukan 3 baris).
+- **Submit bersifat semua-atau-tidak sama sekali**, dalam satu transaksi
+  database (`App\Services\CartSubmitter`). Sudah disiapkan titik sambung
+  eksplisit untuk pengecekan stok Phase 8.
+- Route lama `POST /table/{n}/order-items` beserta `AddOrderItemRequest`
+  **dihapus** — satu-satunya jalan item masuk tab sekarang lewat keranjang.
+
+**Membedakan keranjang vs tagihan itu wajib, bukan hiasan.** Keranjang
+tidak terlihat kafe; kalau pelanggan tertukar, dia menunggu makanan yang
+tidak pernah dibuat siapa pun. Karena itu:
+- Bar bawah keranjang **amber bergaris putus-putus** bertuliskan
+  "Keranjang · belum dikirim"; bar tagihan **maroon solid** bertuliskan
+  "Tagihan meja · sudah di kasir". Tidak pernah muncul bersamaan.
+- Halaman keranjang diawali peringatan "Item di bawah **belum dikirim**".
+- Halaman pesanan menampilkan notice amber kalau masih ada isi keranjang.
+- Dialog konfirmasi menyebut jumlah item, total rupiah, dan bahwa
+  pembatalan sendiri hanya bisa beberapa menit setelahnya.
+
+**Konsekuensi yang harus disadari pemilik:** barista sekarang tidak
+melihat apa pun sampai pelanggan menekan Kirim, dan keranjang yang tidak
+pernah dikirim tidak terlihat staf sama sekali. Itu memang harga dari
+perlindungan salah-tap — mitigasinya adalah ketiga penanda visual di atas.
+
+*Diverifikasi manual*: dua sesi browser di meja 7 → keranjang tidak saling
+terlihat → **0 order di database sebelum Kirim** (inti fase ini) →
+keduanya Kirim → **satu** order berisi keduanya → gelombang kedua masuk ke
+tab yang sama → batal di dialog konfirmasi tidak membuat order apa pun →
+submit keranjang kosong ditolak.
 
 ---
 
