@@ -1,6 +1,18 @@
 @props(['item', 'table'])
 
-<div class="flex items-center justify-between gap-4 border-b border-kafeign-wood-soft/40 py-4 last:border-b-0 dark:border-kafeign-ink-border/60">
+@php
+    $soldOut = $item->isSoldOut();
+    // "Nearly out" is only meaningful for tracked items; an untracked
+    // latte has no number to be low on.
+    $runningLow = ! $soldOut && $item->tracksStock() && $item->stock <= 5;
+@endphp
+
+<div @class([
+    'flex items-center justify-between gap-4 border-b border-kafeign-wood-soft/40 py-4 last:border-b-0 dark:border-kafeign-ink-border/60',
+    // Greyed rather than hidden: a customer holding the tent card deserves
+    // an answer, and it advertises the item for tomorrow.
+    'opacity-55' => $soldOut,
+])>
     <div class="flex min-w-0 items-center gap-4">
         {{-- Only renders once an admin uploads a photo — most items stay
              text-only. Sized to actually read as food photography (not an
@@ -21,7 +33,16 @@
                 @if ($item->is_vdt)
                     <x-badge-pill variant="vdt">VDT</x-badge-pill>
                 @endif
+                @if ($soldOut)
+                    <x-badge-pill>Habis</x-badge-pill>
+                @endif
             </div>
+
+            @if ($runningLow)
+                <p class="mt-1 text-xs text-kafeign-wood dark:text-kafeign-wood-soft">
+                    Sisa {{ $item->stock }} porsi
+                </p>
+            @endif
         </div>
     </div>
 
@@ -32,11 +53,11 @@
 
         {{-- Adds to the private session cart, NOT to the table's tab.
              Nothing here reaches the cashier until "Kirim Pesanan". --}}
-        <button type="button" data-add-item
+        <button type="button" data-add-item @disabled($soldOut)
             data-order-items-url="{{ route('table.cart.items.store', $table) }}"
             data-menu-item-id="{{ $item->id }}"
-            aria-label="Tambah {{ $item->name }} ke keranjang"
-            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-kafeign-wood-soft text-kafeign-maroon-dark transition hover:border-kafeign-maroon hover:bg-kafeign-maroon hover:text-kafeign-cream disabled:cursor-wait disabled:opacity-60 dark:border-kafeign-ink-border dark:text-kafeign-amber dark:hover:bg-kafeign-amber dark:hover:text-kafeign-ink">
+            aria-label="{{ $soldOut ? "{$item->name} sedang habis" : "Tambah {$item->name} ke keranjang" }}"
+            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-kafeign-wood-soft text-kafeign-maroon-dark transition hover:border-kafeign-maroon hover:bg-kafeign-maroon hover:text-kafeign-cream disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-kafeign-wood-soft disabled:hover:bg-transparent disabled:hover:text-kafeign-maroon-dark dark:border-kafeign-ink-border dark:text-kafeign-amber dark:hover:bg-kafeign-amber dark:hover:text-kafeign-ink">
             {{-- Three pre-rendered states swapped by app.js, so a click
                  never has to wait for the fetch before showing feedback. --}}
             <span data-icon-idle>

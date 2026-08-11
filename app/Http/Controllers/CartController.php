@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientStockException;
 use App\Http\Requests\UpdateCartRequest;
 use App\Models\MenuItem;
 use App\Models\Table;
@@ -110,7 +111,17 @@ class CartController extends Controller
         $cart = Cart::forTable($table);
         $count = $cart->count();
 
-        $submitter->submit($table, $cart);
+        try {
+            $submitter->submit($table, $cart);
+        } catch (InsufficientStockException $e) {
+            // Someone took the last one between the customer opening the
+            // cart and pressing Kirim. Nothing was written — send them
+            // back with the specific line called out.
+            throw ValidationException::withMessages([
+                'cart' => 'Pesanan belum dikirim. Stok berubah saat kamu memesan.',
+                ...$e->itemErrors,
+            ]);
+        }
 
         return redirect()
             ->route('table.order', $table)

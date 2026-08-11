@@ -57,10 +57,37 @@
                                             @unless ($item->is_available)
                                                 <x-badge-pill>Nonaktif</x-badge-pill>
                                             @endunless
+                                            @if ($item->isSoldOut())
+                                                <x-badge-pill>Habis</x-badge-pill>
+                                            @endif
                                         </div>
                                         <p class="text-xs text-kafeign-brown/60 dark:text-kafeign-cream-soft/60">
                                             Rp {{ number_format($item->price, 0, ',', '.') }}
+                                            @if ($item->tracksStock())
+                                                · Stok {{ $item->stock }}
+                                            @else
+                                                · <span class="opacity-70">stok tidak dilacak</span>
+                                            @endif
                                         </p>
+
+                                        {{-- Quick restock, because a delivery arriving is a
+                                             several-times-a-day event and opening the full edit
+                                             form for it would be friction the staff feel. --}}
+                                        @if ($item->tracksStock())
+                                            <form method="POST" action="{{ route('admin.menu-items.stock', $item) }}"
+                                                class="mt-1.5 flex items-center gap-1.5">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="mode" value="add">
+                                                <label class="sr-only" for="stock-add-{{ $item->id }}">Tambah stok {{ $item->name }}</label>
+                                                <input type="number" name="value" id="stock-add-{{ $item->id }}" min="1" max="1000" value="10"
+                                                    class="w-16 rounded-md border border-kafeign-wood-soft bg-kafeign-cream px-2 py-1 text-xs text-kafeign-brown dark:border-kafeign-ink-border dark:bg-kafeign-ink dark:text-kafeign-cream-soft">
+                                                <button type="submit"
+                                                    class="rounded-md border border-kafeign-wood-soft px-2 py-1 text-[11px] font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:border-kafeign-ink-border dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
+                                                    + Tambah stok
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </div>
 

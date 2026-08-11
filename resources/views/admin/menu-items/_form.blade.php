@@ -53,6 +53,26 @@
     </div>
 </div>
 
+<div class="mt-4">
+    <label for="stock" class="mb-1.5 block text-xs font-medium uppercase tracking-wide text-kafeign-wood dark:text-kafeign-wood-soft">
+        Stok
+        <span class="normal-case text-kafeign-brown/50 dark:text-kafeign-cream-soft/50">
+            (kosongkan kalau tidak perlu dihitung)
+        </span>
+    </label>
+    <input type="number" name="stock" id="stock" min="0" value="{{ old('stock', $menuItem?->stock) }}"
+        placeholder="Kosong = tidak dilacak"
+        class="w-full rounded-lg border border-kafeign-wood-soft bg-kafeign-cream px-4 py-2.5 text-kafeign-brown placeholder:text-kafeign-brown/40 focus:border-kafeign-maroon focus:outline-none dark:border-kafeign-ink-border dark:bg-kafeign-ink dark:text-kafeign-cream-soft">
+    <p class="mt-1.5 text-xs text-kafeign-brown/60 dark:text-kafeign-cream-soft/60">
+        Isi angka untuk barang yang bisa dihitung (kue, roti, botolan). Stok
+        berkurang otomatis tiap kali dipesan, dan item tampil "Habis" saat 0.
+        Kosongkan untuk minuman racikan yang tidak masuk akal dihitung per porsi.
+    </p>
+    @error('stock')
+        <p class="mt-1.5 text-sm text-red-700 dark:text-red-400">{{ $message }}</p>
+    @enderror
+</div>
+
 <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2">
     <label class="flex items-center gap-2 text-sm text-kafeign-brown dark:text-kafeign-cream-soft">
         <input type="checkbox" name="is_new" value="1" @checked(old('is_new', $menuItem?->is_new))

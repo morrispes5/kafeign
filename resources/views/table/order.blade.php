@@ -48,15 +48,24 @@
                         <span class="font-display text-sm font-semibold text-kafeign-maroon-dark dark:text-kafeign-amber">
                             Rp {{ number_format($item->subtotal, 0, ',', '.') }}
                         </span>
-                        <form method="POST" action="{{ route('table.order-items.destroy', [$table, $item]) }}"
-                            data-confirm="Hapus {{ $item->item_name }} dari pesanan?">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" aria-label="Hapus {{ $item->item_name }}"
-                                class="text-kafeign-brown/40 transition hover:text-red-600 dark:text-kafeign-cream-soft/40 dark:hover:text-red-400">
-                                <x-icon name="close" class="h-4 w-4" />
-                            </button>
-                        </form>
+                        {{-- Past the self-delete window the barista has most
+                             likely already made it, so returning the stock
+                             would make the cafe over-sell. --}}
+                        @if ($item->isSelfDeletable())
+                            <form method="POST" action="{{ route('table.order-items.destroy', [$table, $item]) }}"
+                                data-confirm="Hapus {{ $item->item_name }} dari pesanan?">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" aria-label="Hapus {{ $item->item_name }}"
+                                    class="text-kafeign-brown/40 transition hover:text-red-600 dark:text-kafeign-cream-soft/40 dark:hover:text-red-400">
+                                    <x-icon name="close" class="h-4 w-4" />
+                                </button>
+                            </form>
+                        @else
+                            <span class="text-[11px] text-kafeign-brown/45 dark:text-kafeign-cream-soft/45">
+                                Sedang diproses
+                            </span>
+                        @endif
                     </div>
                 </div>
             @endforeach

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Models\OrderItem;
 use App\Models\Table;
+use App\Services\StockLedger;
 use App\Support\Cart;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -44,7 +45,7 @@ class OrderController extends Controller
      * admin dashboard for no reason, and the next visit here would land
      * on an empty order page instead of a fresh menu.
      */
-    public function destroy(Table $table, OrderItem $orderItem): RedirectResponse
+    public function destroy(Table $table, OrderItem $orderItem, StockLedger $stock): RedirectResponse
     {
         $order = $orderItem->order;
 
@@ -52,7 +53,20 @@ class OrderController extends Controller
             abort(404);
         }
 
+        // Past the window the barista has most likely already made it, so
+        // handing the stock back would make the cafe over-sell tomorrow.
+        // Set the config value to 0 to restore the old unlimited behaviour.
+        if (! $orderItem->isSelfDeletable()) {
+            return redirect()
+                ->route('table.order', $table)
+                ->with('error', "\"{$orderItem->item_name}\" sudah diproses. Hubungi kasir untuk membatalkan.");
+        }
+
         $itemName = $orderItem->item_name;
+
+        // Un-making a line puts its stock back. Deliberately not done for
+        // payment, where the goods really were sold.
+        $stock->restoreLine($orderItem);
         $orderItem->delete();
 
         if ($order->orderItems()->doesntExist()) {

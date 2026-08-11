@@ -47,6 +47,14 @@ dokumen lain ([FITUR.md](docs/FITUR.md) = fitur yang sudah jalan,
   tidak ada di file sumber, dan toast-nya tampil tanpa gaya di produksi.
 - `lockForUpdate()` **tidak berfungsi di SQLite**. Pengaman balapan di
   project ini selalu unique index + catch-and-retry, bukan row lock.
+- **Stok**: `menu_items.stock` nullable, **NULL = tidak dilacak** (bukan
+  habis), 0 = habis. Dua scope yang tidak boleh tertukar:
+  `MenuItem::available()` **menjaga penulisan** (sudah termasuk cek stok),
+  `listedOnMenu()` **hanya menjaga tampilan** (item habis tetap tampil
+  abu-abu). Semua penulisan stok lewat `App\Services\StockLedger` saja,
+  dengan `decrement` bersyarat satu statement. Aturannya: stok dikurangi
+  sekali saat submit, dikembalikan hanya saat baris dibatalkan, **tidak
+  pernah** disentuh saat pembayaran.
 - Kredensial admin ada di `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) dan
   dibuat ulang oleh `AdminUserSeeder` tiap `migrate:fresh --seed`.
   **Akun yang dibuat di luar `.env` akan hilang saat DB di-reset** —

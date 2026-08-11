@@ -45,6 +45,27 @@ class OrderItem extends Model
         });
     }
 
+    /**
+     * Whether the customer may still remove this line themselves.
+     *
+     * Measured from `updated_at`, which moves when the line is topped up —
+     * so adding two more of something restarts its window, which is the
+     * behaviour you want: the newest units are the ones not yet made.
+     *
+     * A window of 0 disables the limit entirely (the pre-Phase-8
+     * behaviour: cancel any time, and accept the stock drift).
+     */
+    public function isSelfDeletable(): bool
+    {
+        $windowMinutes = (int) config('kafeign.order.self_delete_window_minutes');
+
+        if ($windowMinutes <= 0) {
+            return true;
+        }
+
+        return $this->updated_at?->gt(now()->subMinutes($windowMinutes)) ?? true;
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

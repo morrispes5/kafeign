@@ -62,6 +62,14 @@
             <form method="POST" action="{{ route('admin.orders.cancel', $order) }}"
                 data-confirm="Batalkan pesanan meja {{ $order->table->number }} tanpa pembayaran?">
                 @csrf
+                {{-- Only the cashier knows whether the food was already
+                     made. Default on, because the common case is a customer
+                     who left before anything was prepared. --}}
+                <label class="mb-2 flex items-center gap-2 text-xs text-kafeign-brown/80 dark:text-kafeign-cream-soft/80">
+                    <input type="checkbox" name="restore_stock" value="1" checked
+                        class="rounded border-kafeign-wood-soft text-kafeign-maroon focus:ring-kafeign-maroon">
+                    Kembalikan stok ke menu
+                </label>
                 <button type="submit"
                     class="w-full rounded-lg border border-kafeign-wood-soft px-5 py-3 text-sm font-medium text-kafeign-brown transition hover:bg-kafeign-cream-soft dark:border-kafeign-ink-border dark:text-kafeign-cream-soft dark:hover:bg-kafeign-ink-soft">
                     Batalkan Pesanan

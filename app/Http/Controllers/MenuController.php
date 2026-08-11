@@ -17,7 +17,10 @@ class MenuController extends Controller
     {
         $categories = Category::query()
             ->orderedBySort()
-            ->with(['menuItems' => fn ($query) => $query->available()->orderedBySort()])
+            // listedOnMenu(), NOT available(): a sold-out item must still
+            // appear here, greyed out and badged "Habis". available() is
+            // the write gate and would silently hide it instead.
+            ->with(['menuItems' => fn ($query) => $query->listedOnMenu()->orderedBySort()])
             ->get();
 
         $cart = Cart::forTable($table);

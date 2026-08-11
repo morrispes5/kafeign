@@ -19,6 +19,12 @@
             </a>
         </div>
     @else
+        @error('cart')
+            <div class="mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+                {{ $message }}
+            </div>
+        @enderror
+
         {{-- Stated plainly and up front: the cafe cannot see any of this yet. --}}
         <div class="mb-4 rounded-lg border-2 border-dashed border-kafeign-amber bg-kafeign-amber-soft px-4 py-3 text-sm text-kafeign-maroon-dark dark:border-kafeign-amber/60 dark:bg-kafeign-amber/10 dark:text-kafeign-amber">
             Item di bawah <strong>belum dikirim</strong> ke kasir. Tekan "Kirim Pesanan" supaya mulai dibuat.
@@ -42,6 +48,13 @@
                             <p data-line-subtotal class="mt-0.5 font-display text-sm font-semibold text-kafeign-maroon-dark dark:text-kafeign-amber">
                                 Rp {{ number_format($line['subtotal'], 0, ',', '.') }}
                             </p>
+
+                            {{-- Points at the exact row that blocked the submit.
+                                 A summary toast alone leaves the customer hunting
+                                 for which item is the problem. --}}
+                            @error("cart.{$item->id}")
+                                <p class="mt-1 text-xs font-medium text-red-700 dark:text-red-400">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 

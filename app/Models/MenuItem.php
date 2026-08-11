@@ -20,6 +20,7 @@ class MenuItem extends Model
         'is_new',
         'is_vdt',
         'is_available',
+        'stock',
         'sort_order',
     ];
 
@@ -30,6 +31,7 @@ class MenuItem extends Model
             'is_new' => 'boolean',
             'is_vdt' => 'boolean',
             'is_available' => 'boolean',
+            'stock' => 'integer',
             'sort_order' => 'integer',
         ];
     }
@@ -66,11 +68,56 @@ class MenuItem extends Model
     }
 
     /**
-     * Scope: only items the admin hasn't 86'd.
+     * The single source of truth for "may this be ordered right now".
+     *
+     *     is_available = true  AND  (stock IS NULL OR stock > 0)
+     *
+     * THE ONLY SCOPE PERMITTED TO GATE A WRITE. Every money path already
+     * calls it, so they all inherit the stock rule for free. If you find
+     * yourself re-expressing this condition anywhere else — a FormRequest
+     * `Rule::exists(...)->where('is_available', true)`, a raw builder
+     * clause — that copy will silently keep the old semantics the next
+     * time this rule changes. Call the scope instead.
+     *
+     * For deciding what to *show*, use scopeListedOnMenu().
      */
     public function scopeAvailable($query)
     {
+        return $query
+            ->where('is_available', true)
+            ->where(fn ($q) => $q->whereNull('stock')->orWhere('stock', '>', 0));
+    }
+
+    /**
+     * Scope: what appears on the customer menu at all. DISPLAY ONLY —
+     * never use this to gate a write.
+     *
+     * Deliberately does NOT filter on stock. A sold-out item stays on the
+     * menu, greyed out and badged "Habis": a customer holding the tent
+     * card deserves an answer rather than a mystery, and it advertises the
+     * item for tomorrow. Only `is_available = false` (the admin's "not on
+     * the menu today" switch) actually hides a row.
+     */
+    public function scopeListedOnMenu($query)
+    {
         return $query->where('is_available', true);
+    }
+
+    /** Tracked and exhausted — shown, but cannot be ordered. */
+    public function isSoldOut(): bool
+    {
+        return $this->stock !== null && $this->stock <= 0;
+    }
+
+    public function isOrderable(): bool
+    {
+        return $this->is_available && ! $this->isSoldOut();
+    }
+
+    /** Whether this item's stock is counted at all. */
+    public function tracksStock(): bool
+    {
+        return $this->stock !== null;
     }
 
     /**

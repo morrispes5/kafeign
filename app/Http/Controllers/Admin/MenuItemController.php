@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateMenuItemRequest;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Support\MenuItemImage;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -102,6 +103,40 @@ class MenuItemController extends Controller
     }
 
     /**
+     * Quick restock from the index, without opening the full edit form —
+     * the thing staff actually do several times a day when a delivery
+     * arrives or after a stock count.
+     *
+     * Two modes, and the difference matters:
+     *  - `add`: a relative delta, applied as an atomic increment, so two
+     *    people logging deliveries at once cannot lose one of them.
+     *  - `set`: an absolute value. Last write wins, which is correct here
+     *    because a human is deliberately overriding the count.
+     */
+    public function updateStock(Request $request, MenuItem $menuItem): RedirectResponse
+    {
+        $validated = $request->validate([
+            'mode' => ['required', 'in:add,set'],
+            'value' => ['required', 'integer', 'min:0', 'max:100000'],
+        ]);
+
+        if ($validated['mode'] === 'add') {
+            if (! $menuItem->tracksStock()) {
+                return back()->with('error', "\"{$menuItem->name}\" belum melacak stok. Isi stok awalnya dulu lewat Ubah.");
+            }
+
+            $menuItem->increment('stock', $validated['value']);
+        } else {
+            $menuItem->update(['stock' => $validated['value']]);
+        }
+
+        $fresh = $menuItem->fresh();
+
+        return back()->with('success', "Stok \"{$menuItem->name}\" sekarang {$fresh->stock}."
+            .($fresh->stock === 0 ? ' Item ini tampil sebagai Habis di menu pelanggan.' : ''));
+    }
+
+    /**
      * One-click 86/un-86 from the index list, without opening the full
      * edit form.
      */
@@ -123,7 +158,7 @@ class MenuItemController extends Controller
      */
     private function fromRequest(StoreMenuItemRequest|UpdateMenuItemRequest $request): array
     {
-        return array_filter([
+        $data = array_filter([
             'category_id' => $request->integer('category_id'),
             'name' => $request->string('name')->trim()->toString(),
             'price' => $request->integer('price'),
@@ -132,5 +167,14 @@ class MenuItemController extends Controller
             'is_vdt' => $request->boolean('is_vdt'),
             'is_available' => $request->boolean('is_available'),
         ], fn ($value) => $value !== null);
+
+        // Stock is added AFTER the null-strip on purpose. For sort_order an
+        // empty field means "leave it alone", but for stock a NULL is a
+        // real, different value — "tidak dilacak" as opposed to 0 ("habis").
+        // Letting array_filter eat it would make clearing the field a
+        // silent no-op.
+        $data['stock'] = $request->filled('stock') ? $request->integer('stock') : null;
+
+        return $data;
     }
 }

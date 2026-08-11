@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\StockLedger;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -52,10 +54,21 @@ class OrderController extends Controller
      * but the customer left without paying. Closes it without marking it
      * as paid revenue, while still keeping it in the DB as history.
      */
-    public function cancel(Order $order): RedirectResponse
+    public function cancel(Request $request, Order $order, StockLedger $stock): RedirectResponse
     {
         if ($order->status !== OrderStatus::Ongoing) {
             return back()->with('error', 'Pesanan ini sudah tidak aktif.');
+        }
+
+        // The cashier decides, because only they know whether the food was
+        // already made. Default is to restore (the common case is a
+        // customer who left before anything was prepared), but ticking it
+        // off matters: handing back stock for drinks already poured makes
+        // the cafe over-sell tomorrow.
+        $restoreStock = $request->boolean('restore_stock');
+
+        if ($restoreStock) {
+            $stock->restoreOrder($order);
         }
 
         $order->update([
@@ -65,6 +78,7 @@ class OrderController extends Controller
 
         return redirect()
             ->route('admin.dashboard')
-            ->with('success', "Pesanan meja {$order->table->number} dibatalkan.");
+            ->with('success', "Pesanan meja {$order->table->number} dibatalkan."
+                .($restoreStock ? ' Stok dikembalikan ke menu.' : ' Stok tidak dikembalikan.'));
     }
 }

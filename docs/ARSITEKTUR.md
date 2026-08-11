@@ -206,6 +206,65 @@ name-nya jadi `menuItem` (bukan default `menu_item`) lewat
 `->parameters(['menu-items' => 'menuItem'])`, supaya cocok dengan nama
 argumen di controller — kalau lupa, route model binding diam-diam gagal.
 
+## Stok (`App\Services\StockLedger`) — Phase 8
+
+`menu_items.stock` **nullable**, dan **NULL bukan 0**:
+
+| Nilai | Artinya |
+|---|---|
+| `NULL` | Tidak dilacak — latte racikan, apa pun yang tidak masuk akal dihitung per porsi |
+| `0` | Habis — tetap tampil di menu, abu-abu, tidak bisa dipesan |
+| `> 0` | Sisa sekian |
+
+### Satu gerbang, dua scope — jangan pernah dibalik
+
+```
+available()      = is_available AND (stock IS NULL OR stock > 0)   -> MENJAGA PENULISAN
+listedOnMenu()   = is_available                                     -> MENJAGA TAMPILAN
+```
+
+**`available()` adalah satu-satunya scope yang boleh menjaga penulisan.**
+Kalau kondisi ini ditulis ulang di tempat lain (mis. `Rule::exists(...)
+->where('is_available', true)` di sebuah FormRequest), salinan itu akan
+diam-diam mempertahankan aturan lama saat aturannya berubah.
+
+`listedOnMenu()` **hanya** untuk memilih apa yang tampil. Item habis harus
+tetap muncul (abu-abu + badge "Habis"), karena pelanggan yang memegang
+menu berhak dapat jawaban. *Kesalahan ini benar-benar terjadi saat Phase 8
+dikerjakan: `MenuController` memakai `available()` untuk menampilkan, dan
+item habis hilang total dari menu.*
+
+### Pengurangan harus SATU statement
+
+`lockForUpdate()` tidak berfungsi di SQLite, jadi baca-lalu-tulis
+menyisakan celah untuk dua pelanggan sama-sama lolos:
+
+```php
+MenuItem::whereKey($id)
+    ->where(fn ($q) => $q->whereNull('stock')->orWhere('stock', '>=', $qty))
+    ->decrement('stock', $qty);   // 0 baris terpengaruh = kalah balapan
+```
+
+Baris NULL cocok lewat cabang `whereNull`, dan `NULL - n` tetap NULL —
+item tak terlacak aman tanpa kondisi khusus. `unsignedInteger` **tidak
+membantu** di SQLite (tidak ada tipe unsigned; -3 akan diterima); yang
+benar-benar mencegah minus adalah `WHERE` bersyarat di atas.
+
+### Aturan pergerakan stok
+
+> Dikurangi tepat sekali saat submit. Ditambah hanya saat sebuah baris
+> dibatalkan. **Tidak pernah** disentuh saat pembayaran.
+
+Pelanggan hapus baris (dalam `config('kafeign.order.self_delete_window_minutes')`,
+default 3 menit) → kembali. Kasir batalkan → kembali kalau checkbox
+dicentang (hanya kasir yang tahu apakah makanannya sudah dibuat). Kasir
+tandai lunas → tidak pernah, barangnya terjual.
+
+Tidak ada tabel `stock_movements` di MVP. Konsekuensi jujurnya: kalau
+angkanya melenceng, tidak ada cara menelusuri sebabnya. Semua pergerakan
+**otomatis** masih bisa direkonstruksi dari `order_items` + status order +
+timestamp; hanya restock manual yang tidak.
+
 ## Keranjang (`App\Support\Cart`) — Phase 7
 
 Tap "+" tidak lagi langsung membuat order. Item masuk **keranjang** dulu,

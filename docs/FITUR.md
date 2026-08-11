@@ -207,6 +207,74 @@ keduanya Kirim → **satu** order berisi keduanya → gelombang kedua masuk ke
 tab yang sama → batal di dialog konfirmasi tidak membuat order apa pun →
 submit keranjang kosong ditolak.
 
+## Phase 8 — Stok otomatis ✅
+
+Stok per item yang berkurang sendiri saat dipesan, dan item habis tidak
+bisa dipesan lagi.
+
+- **Kolom `menu_items.stock` sengaja NULLABLE, dan NULL ≠ 0.**
+  NULL berarti **"tidak dilacak"**, 0 berarti **"habis"**. Dua alasan yang
+  keduanya nyata: default 0 akan menandai **69 item langsung habis** begitu
+  migration jalan, dan latte yang diracik dari bahan curah tidak masuk akal
+  dihitung per porsi — memaksanya dihitung menjamin muncul "Habis" palsu di
+  minggu pertama. Migration ini **tidak mengubah perilaku apa pun** sampai
+  pemilik mengisi angka per item. Cocok untuk barang yang bisa dihitung:
+  kue, roti, botolan, snack.
+- **Satu gerbang tunggal** untuk "boleh dipesan sekarang", di
+  `MenuItem::scopeAvailable()`: `is_available = true AND (stock IS NULL OR
+  stock > 0)`. Semua jalur uang sudah memanggilnya, jadi otomatis ikut.
+  Scope kedua `scopeListedOnMenu()` khusus **tampilan**.
+  **Aturannya: `available()` satu-satunya yang boleh menjaga penulisan;
+  `listedOnMenu()` hanya boleh menjaga tampilan.**
+- **Item habis tetap tampil**, abu-abu, badge "Habis", tombol nonaktif —
+  bukan disembunyikan. Pelanggan yang memegang menu berhak dapat jawaban,
+  dan itu mengiklankan item untuk besok. Hanya `is_available = false`
+  (saklar admin "tidak dijual hari ini") yang benar-benar menyembunyikan.
+  Item yang tinggal ≤5 menampilkan "Sisa N porsi".
+- **Pengurangan stok atomik dalam satu statement SQL**
+  (`App\Services\StockLedger`, satu-satunya tempat stok ditulis). Ini
+  wajib karena `lockForUpdate()` tidak berfungsi di SQLite — baca-lalu-tulis
+  akan menyisakan celah untuk dua pelanggan sama-sama lolos dan membuat
+  stok minus.
+- **Submit semua-atau-tidak sama sekali.** Keranjang berisi 3 Cireng tapi
+  sisa 1 → tidak ada yang ditulis, stok tetap 1, order tidak dibuat sama
+  sekali, dan error muncul **di baris item yang bermasalah**. Pemenuhan
+  sebagian ditolak karena diam-diam mengubah pesanan pelanggan, dan mereka
+  baru sadar di kasir — tempat termahal untuk menyadarinya.
+
+**Aturan stok, sekali saja:** *dikurangi tepat sekali saat submit;
+dikembalikan hanya saat baris dibatalkan; tidak pernah disentuh saat
+pembayaran.*
+
+| Kejadian | Stok kembali? |
+|---|---|
+| Pelanggan hapus item (dalam 3 menit) | Ya |
+| Kasir batalkan pesanan | Ya, **kalau checkbox dicentang** (default ya) |
+| Kasir tandai lunas | **Tidak pernah** — barangnya memang terjual |
+
+- **Batas hapus-sendiri 3 menit** (`config('kafeign.order.self_delete_window_minutes')`).
+  Lewat itu tombol hapus diganti "Sedang diproses" dan pelanggan diarahkan
+  ke kasir. Alasannya: kalau barista sudah membuat minumannya,
+  mengembalikan stok membuat kafe kelebihan jual besoknya. Set 0 untuk
+  mengembalikan perilaku lama (bebas kapan saja).
+- Checkbox **"Kembalikan stok ke menu"** saat kasir membatalkan, default
+  tercentang — hanya kasir yang tahu apakah makanannya sudah dibuat.
+- **Restock cepat** langsung dari daftar menu admin (mode `add` = delta
+  atomik untuk kiriman barang; mode `set` = nilai absolut untuk opname).
+
+*Diverifikasi manual*: migration no-op (69 item tetap bisa dipesan) →
+stok 0 tidak bisa dipesan tapi tetap tampil → `is_available=false`
+disembunyikan walau stok 50 → stok 1 + keranjang minta 3 → **ditolak,
+stok tetap 1, order tidak dibuat, item lain di keranjang juga tidak
+ditulis** → dua orang rebutan stok terakhir → yang kedua ditolak, stok
+**0 bukan −1** → item NULL tetap NULL setelah dipesan 5 → lunas tidak
+mengembalikan stok, batal mengembalikan → restock +10 lewat admin.
+
+**Bug yang ketemu saat verifikasi**: `MenuController` masih memakai
+`available()` untuk menampilkan menu, sehingga item habis **hilang total**
+alih-alih tampil abu-abu. Persis kesalahan yang aturan dua-scope di atas
+dibuat untuk mencegah — sudah diperbaiki ke `listedOnMenu()`.
+
 ---
 
 ## Audit Keamanan & Perbaikan ✅

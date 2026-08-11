@@ -62,6 +62,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::patch('/menu-items/{menuItem}/toggle-availability', [AdminMenuItemController::class, 'toggleAvailability'])
             ->name('menu-items.toggle-availability');
+        Route::patch('/menu-items/{menuItem}/stock', [AdminMenuItemController::class, 'updateStock'])
+            ->name('menu-items.stock');
         Route::resource('menu-items', AdminMenuItemController::class)
             ->except('show')
             ->parameters(['menu-items' => 'menuItem']);

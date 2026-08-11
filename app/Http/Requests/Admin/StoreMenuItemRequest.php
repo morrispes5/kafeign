@@ -21,6 +21,9 @@ class StoreMenuItemRequest extends FormRequest
             'is_new' => ['nullable', 'boolean'],
             'is_vdt' => ['nullable', 'boolean'],
             'is_available' => ['nullable', 'boolean'],
+            // Nullable is meaningful here: empty means "tidak dilacak",
+            // which is different from 0 ("habis").
+            'stock' => ['nullable', 'integer', 'min:0', 'max:100000'],
             // Comfortably above a typical phone photo (a few MB), under the
             // php.ini upload_max_filesize ceiling. The uploaded file gets
             // resized/re-encoded before storage (App\Support\MenuItemImage),
