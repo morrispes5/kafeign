@@ -61,20 +61,46 @@ npm run build
 | `/admin/login` | Admin/kasir |
 | `/admin/dashboard` | Admin — setelah login |
 
-## Kredensial Admin
+## Login Admin
 
-Dibaca dari `.env`:
+Masuk lewat **`/admin`** (otomatis diarahkan ke halaman login, atau
+langsung ke dashboard kalau sudah login). Bookmark alamat itu — tidak
+perlu mengetik `/admin/login` lengkap.
 
+Centang **"Tetap masuk di perangkat ini"** (default sudah tercentang)
+supaya tidak logout sendiri di tengah shift.
+
+### Kelola akun admin — tidak perlu tinker
+
+| Perintah | Gunanya |
+|---|---|
+| `php artisan admin:list` | Lihat semua akun yang bisa login + peringatan mana yang belum aman dari reset DB |
+| `php artisan admin:create` | Buat akun baru **atau** ganti password akun lama (tinggal pakai email yang sama). Password diketik aman, tidak kelihatan. |
+| `php artisan admin:unlock --all` | Buka kunci kalau salah password 5x dan kena "Terlalu banyak percobaan" |
+
+### ⚠️ Yang WAJIB dipahami soal akun admin
+
+Akun admin dibuat ulang dari `.env` setiap kali `migrate:fresh --seed`
+dijalankan. Artinya:
+
+- Akun yang **tercatat di `.env`** (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) aman —
+  selalu dibuat ulang otomatis.
+- Akun yang dibuat **di luar `.env`** (lewat `admin:create` dengan email
+  berbeda, atau lewat tinker) ada **hanya di database** — dan akan
+  **HILANG** begitu database di-reset.
+
+Ini pernah benar-benar terjadi: akun dibuat lewat tinker, lalu hilang
+saat database di-reset waktu testing, dan pemiliknya tiba-tiba tidak
+bisa login. `php artisan admin:list` sekarang menandai akun mana yang
+berisiko, supaya kejadian itu tidak terulang.
+
+Ganti password admin sebelum dipakai di kafe sungguhan:
+
+```bash
+php artisan admin:create
 ```
-ADMIN_EMAIL=admin@kafeign.test
-ADMIN_PASSWORD=change-me-please
-```
 
-⚠️ **Ini password contoh/default dari proses development, bukan untuk
-dipakai di kafe sungguhan.** Sebelum go-live: ganti nilainya di `.env`,
-lalu jalankan `php artisan migrate:fresh --seed` (atau `db:seed
---class=AdminUserSeeder` saja kalau tidak mau reset data lain) supaya
-password baru ke-apply.
+lalu samakan `ADMIN_EMAIL`/`ADMIN_PASSWORD` di `.env` dengan akun itu.
 
 ## Reset Database ke Kondisi Bersih
 

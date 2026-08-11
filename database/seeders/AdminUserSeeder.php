@@ -22,8 +22,8 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = env('ADMIN_EMAIL');
-        $password = env('ADMIN_PASSWORD');
+        $email = config('kafeign.admin.email');
+        $password = config('kafeign.admin.password');
 
         if (! $email || ! $password) {
             throw new RuntimeException(
@@ -34,7 +34,7 @@ class AdminUserSeeder extends Seeder
         User::updateOrCreate(
             ['email' => $email],
             [
-                'name' => env('ADMIN_NAME', 'Kafeign Admin'),
+                'name' => config('kafeign.admin.name'),
                 'password' => Hash::make($password),
                 'email_verified_at' => now(),
             ]

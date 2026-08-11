@@ -34,15 +34,22 @@ dokumen lain ([FITUR.md](docs/FITUR.md) = fitur yang sudah jalan,
   berlapis (`EnsureTableSession` + throttle + batas jumlah). Batas
   perlindungannya dijelaskan jujur di `docs/ARSITEKTUR.md` — baca dulu
   sebelum mengubah apa pun di sekitar situ.
-- Kredensial admin ada di `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`), masih
-  nilai default development — belum diganti untuk produksi.
+- Kredensial admin ada di `.env` (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) dan
+  dibuat ulang oleh `AdminUserSeeder` tiap `migrate:fresh --seed`.
+  **Akun yang dibuat di luar `.env` akan hilang saat DB di-reset** —
+  ini pernah terjadi dan bikin user tidak bisa login. Kelola akun lewat
+  `php artisan admin:list` / `admin:create` / `admin:unlock`, jangan
+  lewat tinker. Jangan jalankan `migrate:fresh` tanpa memberi tahu user.
 
 ## Perintah yang Sering Dipakai
 
 ```bash
 php artisan serve              # jalankan server dev
 npm run dev                    # (opsional, terpisah) auto-rebuild CSS/JS
-php artisan migrate:fresh --seed  # reset DB ke kondisi bersih + seed asli
+php artisan admin:list         # cek akun admin yang bisa login
+php artisan admin:create       # buat akun admin / ganti password
+php artisan admin:unlock --all # buka kunci login kena rate limit
+php artisan migrate:fresh --seed  # HATI-HATI: hapus SEMUA data (pesanan, akun non-.env)
 php artisan tinker             # inspeksi database langsung
 ```
 

@@ -37,9 +37,13 @@
                     @enderror
                 </div>
 
+                {{-- Checked by default: this is a cashier's own device
+                     during a shift, and being silently signed out mid-service
+                     was the single most annoying thing about the old flow. --}}
                 <label class="flex items-center gap-2 text-sm text-kafeign-brown/80 dark:text-kafeign-cream-soft/80">
-                    <input type="checkbox" name="remember" class="rounded border-kafeign-wood-soft text-kafeign-maroon focus:ring-kafeign-maroon">
-                    Ingat saya
+                    <input type="checkbox" name="remember" value="1" @checked(old('remember', true))
+                        class="rounded border-kafeign-wood-soft text-kafeign-maroon focus:ring-kafeign-maroon">
+                    Tetap masuk di perangkat ini
                 </label>
 
                 <button type="submit"

@@ -71,6 +71,16 @@ class LoginRequest extends FormRequest
 
     private function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return self::throttleKeyFor((string) $this->string('email'), (string) $this->ip());
+    }
+
+    /**
+     * Shared so the `admin:unlock` console command can clear exactly the
+     * same key this request would set, instead of re-deriving it (and
+     * drifting out of sync the moment either side changes).
+     */
+    public static function throttleKeyFor(string $email, string $ip): string
+    {
+        return Str::transliterate(Str::lower($email).'|'.$ip);
     }
 }

@@ -31,6 +31,13 @@ Route::prefix('/table/{table:number}')
     });
 
 Route::prefix('admin')->name('admin.')->group(function () {
+    // Bare /admin is what staff actually type (and bookmark). Send them
+    // wherever they should be: straight to work if already signed in,
+    // to the login form if not.
+    Route::get('/', fn () => redirect()->route(
+        auth()->check() ? 'admin.dashboard' : 'admin.login'
+    ))->name('home');
+
     Route::middleware('guest')->group(function () {
         Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [AdminAuthController::class, 'login'])->name('login.attempt');
