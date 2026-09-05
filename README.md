@@ -7,6 +7,11 @@ berjalan untuk meja itu sampai kasir membersihkannya lewat dashboard admin.
 
 ## Dokumentasi
 
+**AI atau developer baru yang lanjutin project ini** (termasuk kalau
+pindah dari Claude Code ke tool lain): baca
+[docs/HANDOFF.md](docs/HANDOFF.md) dulu — ringkasan apa yang belum
+selesai dan keputusan apa yang harus ditanya ke pemilik dulu.
+
 Semua konteks project — apa yang sudah dibangun, skema database, cara
 menjalankan — ada di [`docs/`](docs/README.md):
 
@@ -15,6 +20,8 @@ menjalankan — ada di [`docs/`](docs/README.md):
 - [docs/ARSITEKTUR.md](docs/ARSITEKTUR.md) — skema database, routes, model
 - [docs/CARA-MENJALANKAN.md](docs/CARA-MENJALANKAN.md) — cara run di lokal
 - [docs/ROADMAP.md](docs/ROADMAP.md) — apa yang sengaja di luar scope
+- [docs/HANDOFF.md](docs/HANDOFF.md) — status & pekerjaan yang belum
+  selesai, untuk lanjut kerja/pindah AI
 
 ## Quick Start
 

@@ -10,7 +10,10 @@ pun** — di situ ada konteks bisnis lengkap, tech stack, dan peta ke
 dokumen lain ([FITUR.md](docs/FITUR.md) = fitur yang sudah jalan,
 [ARSITEKTUR.md](docs/ARSITEKTUR.md) = skema DB/routes/model,
 [CARA-MENJALANKAN.md](docs/CARA-MENJALANKAN.md) = cara run,
-[ROADMAP.md](docs/ROADMAP.md) = apa yang sengaja belum dikerjakan).
+[ROADMAP.md](docs/ROADMAP.md) = apa yang sengaja belum dikerjakan,
+[HANDOFF.md](docs/HANDOFF.md) = ringkasan actionable soal apa yang belum
+selesai + keputusan yang harus ditanya ke pemilik dulu — baca ini juga
+kalau kamu AI yang baru pertama kali masuk project ini).
 
 ## Fakta Cepat
 

@@ -57,6 +57,7 @@ disimpan cuma sebagai arsip referensi visual, tidak dipakai lagi).
 | [ARSITEKTUR.md](ARSITEKTUR.md) | Skema database, model, routes, struktur folder |
 | [CARA-MENJALANKAN.md](CARA-MENJALANKAN.md) | Cara run project ini di lokal |
 | [ROADMAP.md](ROADMAP.md) | Apa yang belum/tidak dikerjakan, ide pengembangan lanjutan |
+| [HANDOFF.md](HANDOFF.md) | **Pindah tool/AI?** Ringkasan actionable soal apa yang belum selesai + keputusan yang harus ditanya ke pemilik dulu |
 
 Lihat juga [PANDUAN-STRUKTUR.md](../PANDUAN-STRUKTUR.md) di root project untuk
 peta folder Laravel (mana yang kode asli, mana yang otomatis/jangan disentuh).
